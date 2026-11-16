@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Halcyon Clash</title>
+<style>
+html, body { height: 100%; margin: 0; background: #05060d; overflow: hidden; }
+#stage { position: absolute; inset: 0; }
+#view { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="view"></canvas></div>
+<script type="module">
+import * as THREE from './src/three.js';
+import { Gfx } from './src/gfx.js';
+import { Arena } from './src/arena.js';
+const stage = document.getElementById('stage');
+const gfx = new Gfx(document.getElementById('view'), stage);
+gfx.resize(true);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, gfx.width / gfx.height, 0.1, 2000);
+camera.layers.enable(1);
+camera.position.set(1.5, 2.9, 9.5);
+camera.lookAt(0, 1.5, 0);
+const arena = new Arena(scene, gfx);
+// stand-in duelists
+for (const [x, c] of [[-2, 0x39d5ff], [2, 0xff4f9a]]) {
+  const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 1.0, 8, 16), new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.5 }));
+  m.position.set(x, 0.85, 0); m.castShadow = true; scene.add(m);
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.2, 0.06), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(5) }));
+  blade.position.set(x + 0.5, 1.4, 0); scene.add(blade);
+}
+let t = 0, last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
+  camera.aspect = gfx.width / gfx.height; camera.updateProjectionMatrix();
+  arena.update(dt, gfx.height, camera.fov);
+  gfx.render(scene, camera, t);
+  window.__game.frames++;
+  requestAnimationFrame(frame);
+}
+window.__game = { ready: true, frames: 0, gfx, scene, camera, arena, THREE };
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
