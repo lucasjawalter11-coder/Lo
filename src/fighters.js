@@ -48,7 +48,7 @@ export const FIGHTERS = [
     weapon: 'pistol', weaponName: 'Twin Lumen Pistols “Hush & Holler”', accent: 0xe14bff, css: '#e14bff',
     blurb: 'A tinkerer who fights from range with twin pistols. Fragile up close, relentless from across the ring.',
     look: {
-      height: 1.6, fem: true, skin: 0xf6d3bd, hair: 0xff9c6b, hairTip: 0xffd9a8, hairStyle: 'bob', eye: 0xc04dff,
+      height: 1.6, fem: true, skin: 0xf6d3bd, hair: 0xcdb6ff, hairTip: 0x8f5bff, hairStyle: 'bob', eye: 0xc04dff,
       jacket: 0x6a4fa3, dark: 0x1b1a26, pants: 0x1b1a26, boots: 0xe9e9f2, glove: 0x1b1a26,
       outfit: 'hoodie', sleeves: 'long', legs: 'tights', bootHeight: 0.16, glowSoles: true, browTilt: 1, blush: 0.26, smile: 71,
     },

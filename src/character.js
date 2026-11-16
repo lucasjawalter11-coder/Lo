@@ -368,6 +368,52 @@ function seeded(seed) {
   return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
 
+// ------------------------------------------------------------ draw-call reduction
+/** Bake sibling meshes that share a material into one mesh per parent joint. */
+function mergeSiblings(root) {
+  const parents = [];
+  root.traverse((o) => { if (!o.isMesh && o.children.length > 1) parents.push(o); });
+  const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+  for (const parent of parents) {
+    const groups = new Map();
+    for (const c of parent.children) {
+      if (!c.isMesh || c.children.length || c.userData.keep || !c.visible) continue;
+      const list = groups.get(c.material); if (list) list.push(c); else groups.set(c.material, [c]);
+    }
+    for (const [material, list] of groups) {
+      if (list.length < 2) continue;
+      const useColor = list.every((m) => m.geometry.attributes.color);
+      let vCount = 0, iCount = 0;
+      for (const m of list) { const g = m.geometry; vCount += g.attributes.position.count; iCount += g.index ? g.index.count : g.attributes.position.count; }
+      const pos = new Float32Array(vCount * 3), nor = new Float32Array(vCount * 3), uv = new Float32Array(vCount * 2), col = useColor ? new Float32Array(vCount * 3) : null;
+      const idx = vCount > 65535 ? new Uint32Array(iCount) : new Uint16Array(iCount);
+      let vo = 0, io = 0;
+      for (const m of list) {
+        const g = m.geometry, p = g.attributes.position, n = g.attributes.normal, u = g.attributes.uv, c = g.attributes.color;
+        m.updateMatrix(); nm.getNormalMatrix(m.matrix);
+        for (let i = 0; i < p.count; i++) {
+          v.fromBufferAttribute(p, i).applyMatrix4(m.matrix); pos[(vo + i) * 3] = v.x; pos[(vo + i) * 3 + 1] = v.y; pos[(vo + i) * 3 + 2] = v.z;
+          if (n) { v.fromBufferAttribute(n, i).applyMatrix3(nm).normalize(); nor[(vo + i) * 3] = v.x; nor[(vo + i) * 3 + 1] = v.y; nor[(vo + i) * 3 + 2] = v.z; }
+          if (u) { uv[(vo + i) * 2] = u.getX(i); uv[(vo + i) * 2 + 1] = u.getY(i); }
+          if (col) { col[(vo + i) * 3] = c.getX(i); col[(vo + i) * 3 + 1] = c.getY(i); col[(vo + i) * 3 + 2] = c.getZ(i); }
+        }
+        if (g.index) { const a = g.index.array; for (let i = 0; i < a.length; i++) idx[io + i] = a[i] + vo; io += a.length; }
+        else { for (let i = 0; i < p.count; i++) idx[io + i] = vo + i; io += p.count; }
+        vo += p.count;
+        parent.remove(m);
+        if (!g.userData.shared) g.dispose();
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      if (col) geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      const merged = new THREE.Mesh(geo, material);
+      merged.castShadow = list.some((m) => m.castShadow);
+      parent.add(merged);
+    }
+  }
+}
+
 // ------------------------------------------------------------ the rig
 export class Rig {
   constructor(def) {
@@ -496,6 +542,7 @@ export class Rig {
       this.weapons.push(this.weaponL);
     }
     this.twoHanded = !!this.weapon.gripL;
+    mergeSiblings(this.body);
 
     // soft contact shadow
     const blob = new THREE.Mesh(new THREE.CircleGeometry(0.62, 24), Rig.blobMaterial());
@@ -534,6 +581,7 @@ export class Rig {
     add(spine, new THREE.BoxGeometry(0.024, 0.02, 0.022), M.trim, 0, 0.01, waistR * 0.81);
     const sig = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.012, 6), M.glow);
     sig.position.set(chestR * 0.46, 0.15, frontZ(chestR) * 0.9); sig.rotation.set(Math.PI / 2 - 0.2, 0, 0.25);
+    sig.userData.keep = true;
     chest.add(sig);
     this.sigil = sig;
     const sigRing = add(chest, new THREE.TorusGeometry(0.034, 0.005, 5, 6), M.metal, sig.position.x, sig.position.y, sig.position.z - 0.002);

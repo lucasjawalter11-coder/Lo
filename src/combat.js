@@ -7,6 +7,7 @@ import { PLAY_RADIUS, ARENA_RADIUS } from './arena.js';
 
 const TAU = Math.PI * 2;
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
+const _col = new THREE.Color();
 export const angDiff = (from, to) => { let d = (to - from) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
 const clamp = THREE.MathUtils.clamp;
 
@@ -42,7 +43,7 @@ export class Fighter {
     this.move = null; this.comboIdx = 0; this.buf = null;
     this.invuln = 0; this.dashCd = 0; this.hitsTaken = 0; this.combo = 0; this.comboT = 0;
     this.stun = 0; this.hitDone = false; this.fired = 0; this.armor = false; this.ghost = false;
-    this.ult = null; this.beamOn = false; this.hitFlip = false;
+    this.ult = null; this.beamOn = false; this.hitFlip = false; this.windUsed = false; this.guardLock = 0;
     this.trail && this.trail.reset();
     this.rig.fx.flash.value = 0;
     this.rig.setIgnite(1);
@@ -63,7 +64,7 @@ export class Fighter {
   get busy() { return this.state === 'attack' || this.state === 'ult' || this.state === 'leap'; }
   get vulnerable() { return this.invuln <= 0 && !['down', 'getup', 'ko', 'win', 'still'].includes(this.state) && !(this.ult && this.ult.invuln); }
   get threatening() { return (this.state === 'attack' && this.move && this.stateT < (this.move.hit ? this.move.hit[1] : this.move.dur * 0.6)) || this.state === 'leap' || (this.state === 'ult' && this.ult && this.ult.phase === 'exec'); }
-  gainEnergy(v) { this.energy = clamp(this.energy + v, 0, 100); }
+  gainEnergy(v) { this.energy = clamp(this.energy + (v > 0 ? v * (this.def.stats.focus ?? 1) : v), 0, 100); }
 
   setState(s) { this.state = s; this.stateT = 0; }
 
@@ -127,7 +128,7 @@ export class Fighter {
     this.interrupt();
     this.setState('dash'); this.buf = null;
     this.vel.set(dx * DASH_SPEED, 0, dz * DASH_SPEED);
-    this.invuln = 0.22; this.dashCd = DASH_CD;
+    this.invuln = 0.22; this.dashCd = DASH_CD * (this.def.stats.dashCd ?? 1);
     if (back) { this.faceTarget(); this.anim.play('guardHit', { blend: 0.04, force: true, speed: 0.7 }); }
     else { this.facing = Math.atan2(dx, dz); this.anim.play('dash', { blend: 0.05, force: true }); }
     const w = this.world;
@@ -165,7 +166,7 @@ export class Fighter {
     if (this.state === 'guard' && !spec.unblockable) {
       const front = (-dx) * this.dirX + (-dz) * this.dirZ;      // source is in front of us
       if (front > -0.25) {
-        if (this.stateT < 0.17 && !spec.guardBreak) return { type: 'parry' };
+        if (this.stateT < (this.def.perks && this.def.perks.keen ? 0.24 : 0.17) && !spec.guardBreak) return { type: 'parry' };
         if (spec.guardBreak) {
           dmg *= 0.6; this.hp -= dmg;
           if (this.hp <= 0) { this.hp = 0; this.enterKO(dx, dz, spec.push); return { type: 'hit', dmg, ko: true, broke: true }; }
@@ -194,8 +195,13 @@ export class Fighter {
     this.hp -= dmg;
     this.hitsTaken++;
     if (this.hp <= 0) { this.hp = 0; this.enterKO(dx, dz, spec.push); return { type: 'hit', dmg, ko: true }; }
+    let wind = false;
+    if (this.def.perks && this.def.perks.wind && !this.windUsed && this.hp < this.maxHp * 0.25) {
+      this.windUsed = true; wind = true;
+      this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.2);
+    }
     if (spec.launch) this.enterDown(dx, dz, spec.push); else this.enterHit(spec.stun, dx, dz, spec.push);
-    return { type: 'hit', dmg };
+    return { type: 'hit', dmg, wind };
   }
 
   enterHit(stun, dx, dz, push) {
@@ -205,7 +211,7 @@ export class Fighter {
     this.facing = Math.atan2(-dx, -dz);
     this.hitFlip = !this.hitFlip;
     this.anim.play(this.hitFlip ? 'hit1' : 'hit2', { blend: 0.03, force: true });
-    this.rig.fx.flash.value = 0.85;
+    this.rig.fx.flash.value = 0.6;
   }
 
   enterDown(dx, dz, push) {
@@ -214,7 +220,7 @@ export class Fighter {
     this.vel.set(dx * push, 0, dz * push);
     this.facing = Math.atan2(-dx, -dz);
     this.anim.play('knockdown', { blend: 0.04, force: true });
-    this.rig.fx.flash.value = 1;
+    this.rig.fx.flash.value = 0.75;
     this.landed = false;
   }
 
@@ -224,7 +230,7 @@ export class Fighter {
     this.vel.set(dx * (push + 4), 0, dz * (push + 4));
     this.facing = Math.atan2(-dx, -dz);
     this.anim.play('ko', { blend: 0.04, force: true });
-    this.rig.fx.flash.value = 1;
+    this.rig.fx.flash.value = 0.7;
     this.landed = false;
   }
 
@@ -283,7 +289,7 @@ export class Fighter {
       case 'ult': this.runUlt(dt); friction = this.ult && this.ult.noFriction ? 0 : 12; break;
       case 'dash': {
         friction = t > 0.18 ? 16 : 0;
-        if (Math.random() < 0.7) w.fx.emit(this.pos.x + rand(-0.3, 0.3), rand(0.3, 1.5), this.pos.z + rand(-0.3, 0.3), -this.vel.x * 0.1, 0, -this.vel.z * 0.1, _c.copy(this.color).multiplyScalar(3), 0.25, 0.09, 0, 0);
+        if (Math.random() < 0.7) w.fx.emit(this.pos.x + rand(-0.3, 0.3), rand(0.3, 1.5), this.pos.z + rand(-0.3, 0.3), -this.vel.x * 0.1, 0, -this.vel.z * 0.1, _col.copy(this.color).multiplyScalar(3), 0.25, 0.09, 0, 0);
         if (t >= DASH_TIME) { this.toIdle(); }
         break;
       }
@@ -715,8 +721,8 @@ export class Duel {
     }
     // clean hit
     fx.sparks(p, acc, heavy ? 34 : 18, heavy ? 11 : 8, { dir: away, spread: 0.75, life: heavy ? 0.6 : 0.4 });
-    fx.flare(p, acc, heavy ? 3.2 : 1.9, heavy ? 0.22 : 0.14, 3.5);
-    fx.flash(p, acc, heavy ? 150 : 70, 0.22);
+    fx.flare(p, acc, heavy ? 2.6 : 1.6, res.ko ? 0.05 : heavy ? 0.2 : 0.13, 3);
+    fx.flash(p, acc, heavy ? 80 : 36, 0.2);
     if (heavy) fx.ring(target.pos, acc, 0.3, 2.6, 0.32);
     if (!spec.quiet) this.audio.play(heavy ? 'hitHeavy' : 'hit');
     this.hitStop = Math.max(this.hitStop, res.ko ? 0.22 : heavy ? 0.1 : 0.055);
@@ -725,6 +731,11 @@ export class Duel {
     attacker.combo = target.hitsTaken; attacker.comboT = 1.4;
     if (heavy) this.arena.cheer(0.35);
     this.emit('hit', { attacker, target, dmg: res.dmg, pos: p, heavy, broke: res.broke, combo: attacker.combo });
+    if (res.wind) {
+      fx.ring(target.pos, 0x9dffb0, 0.4, 3.4, 0.6, 0.2); fx.pillar(target.pos, 0x9dffb0, 0.9, 7, 0.6); fx.aura(target.pos, 0x9dffb0, 24, 0.8, 4);
+      this.audio.play('levelUp');
+      this.emit('wind', { fighter: target });
+    }
     if (res.ko) {
       this.fightOn = false;
       target.rig.sigil.getWorldPosition(_b);
@@ -756,7 +767,7 @@ export class Duel {
         if (p.kind === 'wave') { const k = Math.max(0, p.life / 0.5); p.bolt.mat.opacity = k; p.bolt.mesh.scale.setScalar(1.5 + (1 - k) * 1.2); }
       }
       if (p.kind === 'bolt') {
-        if (Math.random() < 0.8) this.fx.emit(p.pos.x, p.pos.y, p.pos.z, rand(-0.5, 0.5), rand(-0.5, 0.5), rand(-0.5, 0.5), _c.copy(p.owner.color).multiplyScalar(3), 0.22, 0.09, 0, 0);
+        if (Math.random() < 0.8) this.fx.emit(p.pos.x, p.pos.y, p.pos.z, rand(-0.5, 0.5), rand(-0.5, 0.5), rand(-0.5, 0.5), _col.copy(p.owner.color).multiplyScalar(3), 0.22, 0.09, 0, 0);
         if (tg && tg.pos.y < 1.3 && Math.hypot(tg.pos.x - p.pos.x, tg.pos.z - p.pos.z) < p.radius + 0.45) {
           _b.set(p.pos.x - dx * 2, 0, p.pos.z - dz * 2);
           const res = this.resolveHit(p.owner, tg, { ...p.spec, projectile: true }, _b);

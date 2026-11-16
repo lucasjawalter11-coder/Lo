@@ -403,7 +403,9 @@ export class Arena {
     this.pulses = [0, 1, 2, 3].map(() => new THREE.Vector4(0, 0, 0, 99));
     this.pulseIdx = 0;
     this.updaters = [];
-    this.group = new THREE.Group();
+    this.group = new THREE.Group();     // shared by every location: sky, city, lights
+    this.stage = new THREE.Group();     // the duel ring itself
+    this.group.add(this.stage);
     scene.add(this.group);
 
     scene.fog = new THREE.FogExp2(0x0b0a1c, 0.0032);
@@ -467,7 +469,7 @@ export class Arena {
     key.target.position.set(0, 0, 0);
     key.castShadow = true;
     const sc = key.shadow.camera;
-    sc.left = -15; sc.right = 15; sc.top = 15; sc.bottom = -15; sc.near = 2; sc.far = 48;
+    sc.left = -17; sc.right = 17; sc.top = 17; sc.bottom = -17; sc.near = 2; sc.far = 52;
     key.shadow.bias = -0.0005;
     key.shadow.normalBias = 0.03;
     key.shadow.radius = 3;
@@ -488,7 +490,7 @@ export class Arena {
     const albedo = canvasTex(maps.albedo, true), emissive = canvasTex(maps.emissive, true), orm = canvasTex(maps.orm, false);
     const refl = this.gfx.reflection;
     const mat = new THREE.MeshStandardMaterial({
-      map: albedo, emissiveMap: emissive, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 2.2,
+      map: albedo, emissiveMap: emissive, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 1.45,
       roughnessMap: orm, metalnessMap: orm, roughness: 1.0, metalness: 1.0, envMapIntensity: 0.7,
     });
     mat.onBeforeCompile = (shader) => {
@@ -524,7 +526,7 @@ varying vec3 vFloorWorld;
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     floor.layers.set(1);
-    this.group.add(floor);
+    this.stage.add(floor);
     this.floor = floor;
     this.floorMat = mat;
 
@@ -532,25 +534,25 @@ varying vec3 vFloorWorld;
     const rimMat = new THREE.MeshStandardMaterial({ color: 0x0c0f18, emissive: 0xffb23e, emissiveIntensity: 3.0, roughness: 0.4, metalness: 0.8 });
     const rim = new THREE.Mesh(new THREE.TorusGeometry(ARENA_RADIUS + 0.06, 0.06, 8, 160), rimMat);
     rim.rotation.x = Math.PI / 2; rim.position.y = -0.02; rim.layers.set(1);
-    this.group.add(rim);
+    this.stage.add(rim);
     this.rimMat = rimMat;
 
     const hull = new THREE.MeshStandardMaterial({ color: 0x10141f, roughness: 0.55, metalness: 0.85 });
     const body = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_RADIUS + 0.12, ARENA_RADIUS - 2.5, 3.2, 96, 1, true), hull);
     body.position.y = -1.62; body.layers.set(1);
-    this.group.add(body);
+    this.stage.add(body);
 
     // moat between platform and stands with light vents
     const moat = new THREE.Mesh(new THREE.RingGeometry(ARENA_RADIUS - 2.6, 17.4, 96, 1), new THREE.MeshStandardMaterial({ color: 0x070910, roughness: 0.8, metalness: 0.4 }));
     moat.rotation.x = -Math.PI / 2; moat.position.y = -3.2; moat.layers.set(1);
-    this.group.add(moat);
+    this.stage.add(moat);
     const ventMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x35c9ff).multiplyScalar(1.6) });
     const vents = new THREE.Mesh(new THREE.TorusGeometry(15.3, 0.05, 6, 120), ventMat);
     vents.rotation.x = Math.PI / 2; vents.position.y = -3.1; vents.layers.set(1);
-    this.group.add(vents);
+    this.stage.add(vents);
     const wall = new THREE.Mesh(new THREE.CylinderGeometry(17.4, 17.4, 3.2, 96, 1, true), new THREE.MeshStandardMaterial({ color: 0x0d1019, roughness: 0.6, metalness: 0.7, side: THREE.BackSide }));
     wall.position.y = -1.6; wall.layers.set(1);
-    this.group.add(wall);
+    this.stage.add(wall);
   }
 
   _buildBarrier() {
@@ -564,7 +566,7 @@ varying vec3 vFloorWorld;
     const b = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_RADIUS + 0.1, ARENA_RADIUS + 0.1, 7, 128, 1, true), this.barrierMat);
     b.position.y = 3.5;
     b.renderOrder = 5;
-    this.group.add(b);
+    this.stage.add(b);
     this.barrier = b;
   }
 
@@ -582,12 +584,12 @@ varying vec3 vFloorWorld;
     pts.push(new THREE.Vector2(r1 + 1.5, y1 + 1.2), new THREE.Vector2(r1 + 3.5, y1 + 1.2), new THREE.Vector2(r1 + 5, y0 - 30));
     const standMat = new THREE.MeshStandardMaterial({ color: 0x0c0e18, roughness: 0.75, metalness: 0.5, side: THREE.DoubleSide, flatShading: true });
     const stands = new THREE.Mesh(new THREE.LatheGeometry(pts, 72), standMat);
-    this.group.add(stands);
+    this.stage.add(stands);
 
     // light strips on the inner wall and the bowl's crown
     const strip = (r, y, color, tube, intensity) => {
       const m = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 6, 160), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(intensity) }));
-      m.rotation.x = Math.PI / 2; m.position.y = y; this.group.add(m); return m;
+      m.rotation.x = Math.PI / 2; m.position.y = y; this.stage.add(m); return m;
     };
     strip(r0 - 0.02, 1.38, 0x35c9ff, 0.045, 2.2);
     strip(r0 - 0.02, 0.5, 0xff3d9a, 0.03, 1.6);
@@ -618,7 +620,7 @@ varying vec3 vFloorWorld;
     });
     const crowd = new THREE.Points(geo, this.crowdMat);
     crowd.frustumCulled = false;
-    this.group.add(crowd);
+    this.stage.add(crowd);
   }
 
   _buildPylons() {
@@ -652,7 +654,7 @@ varying vec3 vFloorWorld;
       beam.renderOrder = 4;
       g.add(beam);
       this.beams.push({ mesh: beam, phase: i * 1.7, mat: beamMat });
-      this.group.add(g);
+      this.stage.add(g);
     }
   }
 
@@ -675,7 +677,7 @@ varying vec3 vFloorWorld;
       const frame = new THREE.Mesh(new THREE.BoxGeometry(23, 9.2, 0.5), frameMat);
       frame.position.z = -0.3;
       g.add(frame, screen);
-      this.group.add(g);
+      this.stage.add(g);
     }
     this.setScreen({ title: 'CROWN TRIALS', left: 'HALCYON', right: 'CLASH', leftColor: '#39d5ff', rightColor: '#ff4f9a' });
   }
@@ -791,7 +793,7 @@ varying vec3 vFloorWorld;
     });
     const motes = new THREE.Points(geo, this.moteMat);
     motes.frustumCulled = false;
-    this.group.add(motes);
+    this.stage.add(motes);
   }
 
   /** Ripple the barrier where something slammed into it. */

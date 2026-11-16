@@ -15,6 +15,7 @@ uniform vec2 uTexel;
 uniform float uThreshold;
 uniform float uKnee;
 vec3 pre(vec3 c) {
+  if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0);   // never let one bad pixel bloom across the screen
   c = min(c, vec3(40.0));
   float br = max(c.r, max(c.g, c.b));
   float soft = clamp(br - uThreshold + uKnee, 0.0, 2.0 * uKnee);
@@ -217,8 +218,8 @@ export class Gfx {
       { blending: THREE.AdditiveBlending, transparent: true });
     this.matComposite = mk(COMPOSITE_FRAG, {
       tScene: { value: null }, tBloom: { value: null },
-      uBloom: { value: 0.22 }, uExposure: { value: 1.0 }, uTime: { value: 0 },
-      uVignette: { value: 0.75 }, uGrain: { value: 0.035 }, uAberration: { value: 0.012 },
+      uBloom: { value: 0.15 }, uExposure: { value: 1.0 }, uTime: { value: 0 },
+      uVignette: { value: 0.75 }, uGrain: { value: 0.035 }, uAberration: { value: 0.006 },
       uRadial: { value: 0 }, uRadialCenter: { value: new THREE.Vector2(0.5, 0.5) },
       uSaturation: { value: 1.08 }, uFlash: { value: 0 }, uFlashColor: { value: new THREE.Color(1, 1, 1) },
       uFade: { value: 1 }, uLetterbox: { value: 0 }, uAspect: { value: 1 },
@@ -304,6 +305,14 @@ export class Gfx {
       }));
     }
     this.post.uAspect.value = w / h;
+  }
+
+  /** Compile every material in the scene up front so effects never hitch the first time they appear. */
+  warm(scene, camera) {
+    const r = this.renderer;
+    r.setRenderTarget(this.sceneRT);
+    r.compile(scene, camera);
+    r.setRenderTarget(null);
   }
 
   _pass(material, target) {

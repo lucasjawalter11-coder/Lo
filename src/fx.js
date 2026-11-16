@@ -24,7 +24,7 @@ export class Trail {
     for (let i = 0; i < TRAIL_SAMPLES; i++) { this.base.push(new THREE.Vector3()); this.tip.push(new THREE.Vector3()); this.age.push(9); }
     this.count = 0;
     this.active = false;
-    this.life = 0.16;
+    this.life = 0.13;
     const geo = new THREE.BufferGeometry();
     this.pos = new Float32Array(TRAIL_ROWS * 2 * 3);
     this.alpha = new Float32Array(TRAIL_ROWS * 2);
@@ -36,7 +36,7 @@ export class Trail {
     this.mat = additive({
       uniforms: { uColor: { value: new THREE.Color(color) }, uBoost: { value: 1 } },
       vertexShader: 'attribute float aAlpha; varying float vA; varying float vEdge; void main(){ vA = aAlpha; vEdge = mod(float(gl_VertexID), 2.0); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'precision highp float; uniform vec3 uColor; uniform float uBoost; varying float vA; varying float vEdge; void main(){ float e = pow(vEdge, 1.6); vec3 c = mix(uColor * 0.6, mix(uColor, vec3(1.0), 0.55) * 3.2, e * e); gl_FragColor = vec4(c * vA * (0.25 + 0.75 * e) * uBoost, 1.0); }',
+      fragmentShader: 'precision highp float; uniform vec3 uColor; uniform float uBoost; varying float vA; varying float vEdge; void main(){ float e = vEdge * vEdge * vEdge; vec3 c = mix(uColor * 0.35, mix(uColor, vec3(1.0), 0.5) * 2.4, e); gl_FragColor = vec4(c * vA * (0.04 + 0.96 * e) * uBoost, 1.0); }',
       side: THREE.DoubleSide,
     });
     this.mesh = new THREE.Mesh(geo, this.mat);
@@ -53,6 +53,7 @@ export class Trail {
       // newest sample at index 0
       const b = this.base.pop(), t = this.tip.pop(); this.age.pop();
       baseObj.getWorldPosition(b); tipObj.getWorldPosition(t);
+      b.lerp(t, 0.3);
       this.base.unshift(b); this.tip.unshift(t); this.age.unshift(0);
       this.count = Math.min(TRAIL_SAMPLES, this.count + 1);
     } else if (this.count > 0 && this.age[0] > this.life) {
@@ -410,9 +411,9 @@ export class FX {
       s.life = s.max = rand(0.9, 1.6);
       s.mesh.scale.setScalar(rand(0.5, 1.6));
     }
-    this.sparks(pos, color, 60, 9, { life: 0.9, size: 0.12, grav: 7 });
-    this.flare(pos, color, 4.5, 0.35, 5);
-    this.flash(pos, color, 220, 0.5);
+    this.sparks(pos, color, 44, 9, { life: 0.9, size: 0.1, grav: 7 });
+    this.flare(pos, color, 3.0, 0.12, 3);
+    this.flash(pos, color, 70, 0.12);
   }
 
   clear() {
