@@ -486,6 +486,25 @@ local function build(world: Instance)
 		for _, sx in { -44, 44 } do
 			Props.lamp(p:shift(sx, 0, 90, if sx > 0 then 90 else -90), 0, 0, info.accent, true)
 		end
+		-- The school tower: every academy is a skyscraper campus rising behind its hall.
+		local body = Kit.mix(info.uniform.dark, Pal.night, 0.3)
+		local tw = p:shift(0, 0, 152)
+		tw:box(0, 0, 0, 64, 16, 44, Pal.slate, M.Marble, { name = "TowerPodium" })
+		tw:box(0, 16, 0, 46, 250, 34, body, M.SmoothPlastic, { name = "SchoolTower", refl = 0.15 })
+		tw:box(0, 266, 0, 34, 80, 26, body, M.SmoothPlastic, { refl = 0.15 })
+		tw:box(0, 346, 0, 20, 44, 16, body, M.SmoothPlastic)
+		tw:cyl(0, 390, 0, 1.6, 50, info.accent, M.Neon, { decor = true })
+		local beacon = tw:ball(0, 442, 0, 4, info.accent, M.Neon, { decor = true })
+		Kit.glow(beacon, 60, 3, info.accent)
+		for i = 0, 11 do
+			tw:box(0, 30 + i * 20, 0, 46.8, 2.2, 34.8, if i % 3 == 0 then info.accent else hex(0xfff0c8), M.Neon, { decor = true, trans = if i % 3 == 0 then 0 else 0.25 })
+		end
+		for _, sx in { -23.6, 23.6 } do
+			tw:box(sx, 16, -17.4, 1.4, 330, 1.4, info.accent, M.Neon, { decor = true })
+		end
+		local crest = tw:box(0, 228, -17.4, 34, 30, 0.6, Pal.night, M.Glass, { decor = true, name = "TowerCrest" })
+		Kit.label(crest, Enum.NormalId.Front, string.upper(info.short), { color = info.accent })
+		tw:box(0, 266, 0, 52, 2, 40, info.accent, M.Neon, { decor = true })
 		return p, info
 	end
 
