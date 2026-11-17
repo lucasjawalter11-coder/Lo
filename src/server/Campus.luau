@@ -1,14 +1,15 @@
 --!nonstrict
 -- Campus: the Halcyon Concourse, a floating island shared by the four academies.
 --
--- One large continuous landscape (3600 x 3600 studs) ringed by mountains. Nothing floats.
+-- One large continuous landscape (2700 x 2700 studs) ringed by mountains. Nothing floats.
+-- The land between the districts is filled with neighbourhoods, woods, parks, fields and courts.
 -- Layout (top view, +Z is south):
 --   centre      the Register Plaza: the spire, the Register boards and the ring of twelve seats
 --   south       the Skydock, where students arrive
 --   east        the Training Hall
 --   north       the Crown Arena and the Crown Gate
 --   west        the Market Arcade
---   diagonals   the four school campuses, each on its own walled land 820+ studs out
+--   diagonals   the four school campuses, each on its own walled land 600+ studs out
 --               (SE Solcrest, NE Northwind, NW Ironreach, SW Arcline)
 --   far west    Halcyon City, down the city road
 -- Angles below use: position = (sin a, cos a) * radius, so 0 = south, 90 = east, 180 = north, 270 = west.
@@ -26,8 +27,8 @@ local hex = Kit.hex
 local Campus = {}
 
 Campus.IslandRadius = 520 -- radius of the central hub area
-Campus.Edge = 1800 -- the walkable land runs from -Edge to +Edge on X and Z
-Campus.CampusGate = 820 -- distance from the centre to each school's gate
+Campus.Edge = 1350 -- the walkable land runs from -Edge to +Edge on X and Z
+Campus.CampusGate = 600 -- distance from the centre to each school's gate
 Campus.PlazaRadius = 124
 
 -- Where each default seat-holder stands on the plaza ring (degrees). Rookies stand near the Skydock,
@@ -575,6 +576,34 @@ local function build(world: Instance)
 				Props.lamp(p:shift(sx * 0.18, 0, 170 + j * 60, if sx > 0 then 90 else -90), 0, 0, info.accent, j % 2 == 0)
 			end
 		end
+		-- classroom wings either side of the main walk
+		for _, sx in { -165, 165 } do
+			local wing = Kit.mix(info.uniform.jacket, Pal.stone, 0.6)
+			p:box(sx, 0, 150, 90, 26, 44, wing, M.SmoothPlastic, { name = "ClassroomWing" })
+			p:box(sx, 26, 150, 94, 2, 48, Kit.shade(info.uniform.dark, 1.3), M.Slate)
+			for f2 = 0, 1 do
+				for wx = -3, 3 do
+					p:box(sx + wx * 12, 5 + f2 * 11, 150 + (if sx < 0 then 22.1 else -22.1) * -1, 7, 5, 0.3, hex(0xcfe9ff), M.Glass, { decor = true, trans = 0.3 })
+				end
+			end
+			p:box(sx, 11.5, 150, 90.6, 0.8, 44.6, info.accent, M.Neon, { decor = true })
+			local plate = p:box(sx, 18, 127.7, 30, 5, 0.4, Pal.night, M.Glass, { decor = true })
+			Kit.label(plate, Enum.NormalId.Front, "CLASSROOMS", { color = info.accent })
+		end
+		-- tree-lined main walk with benches
+		for j = 0, 5 do
+			for _, sx in { -60, 60 } do
+				Props.tree(p, sx, 40 + j * 44, if j % 2 == 0 then "blossom" else "round", 1.05)
+			end
+			if j % 2 == 1 then
+				Props.bench(p, -54, 40 + j * 44, -90)
+				Props.bench(p, 54, 40 + j * 44, 90)
+			end
+		end
+		-- back garden behind the tower
+		for i = 0, 5 do
+			Props.tree(p, -100 + i * 40, 600, if i % 2 == 0 then "pine" else "round", 1.3)
+		end
 		Props.fountain(p, -100, 200, 10, info.accent)
 		Props.planter(p, 100, 200, 16, "blossom")
 		anchor("Return_campus_" .. info.id, p, 0, 0.6, 20, 0)
@@ -952,75 +981,115 @@ local function build(world: Instance)
 		end
 	end
 
-	-- Woods, meadows and rocks across the open land, kept clear of roads, campuses and the city
+	-- Neighbourhoods: the land between the districts is split into 100-stud cells, and every free cell
+	-- gets something (houses, shops, woods, a park, a field or a court). A few stay open meadow.
 	do
-		local rnd = Props.rng(424242)
-		local kinds = { "round", "round", "blossom", "pine", "pine", "autumn" }
+		local LAKE = Vector3.new(300, 0, 1000)
 		local function clear(x: number, z: number): boolean
 			local r = math.sqrt(x * x + z * z)
-			if r < 340 then
+			if r < 345 then
+				return false
+			end
+			if math.abs(x) > Campus.Edge - 60 or math.abs(z) > Campus.Edge - 60 then
 				return false
 			end
 			local a = math.deg(math.atan2(x, z)) % 360
-			-- the four campuses and their roads
 			for _, ca in { 45, 135, 225, 315 } do
 				local ar = math.rad(ca)
 				local along = x * math.sin(ar) + z * math.cos(ar)
 				local side = x * math.cos(ar) - z * math.sin(ar)
-				if along > Campus.CampusGate - 30 and along < Campus.CampusGate + 680 and math.abs(side) < 340 then
+				if along > Campus.CampusGate - 40 and along < Campus.CampusGate + 680 and math.abs(side) < 345 then
 					return false
 				end
-				if along > 0 and along < Campus.CampusGate and math.abs(side) < 46 then
+				if along > 0 and along < Campus.CampusGate and math.abs(side) < 40 then
 					return false
 				end
 			end
-			-- the city and its road
-			if x < -470 and x > -1330 and math.abs(z) < 320 then
-				return false
+			if x < -470 and x > -1330 and math.abs(z) < 330 then
+				return false -- Halcyon City and its road
 			end
-			-- buildings just outside the hub (N, E, S, W)
 			for _, ca in { 0, 90, 180, 270 } do
 				local diff = math.abs(((a - ca + 180) % 360) - 180)
-				if r < 520 and diff < 18 then
+				if r < 540 and diff < 19 then
 					return false
 				end
 			end
-			return math.abs(x) < Campus.Edge - 40 and math.abs(z) < Campus.Edge - 40
+			if (Vector3.new(x, 0, z) - LAKE).Magnitude < 175 then
+				return false
+			end
+			return true
 		end
-		local placed = 0
-		local guard = 0
-		while placed < 380 and guard < 6000 do
-			guard += 1
-			-- clumped woods: pick a wood centre, then scatter around it
-			local cx, cz = rnd(-Campus.Edge, Campus.Edge), rnd(-Campus.Edge, Campus.Edge)
-			for _ = 1, 7 do
-				local x, z = cx + rnd(-70, 70), cz + rnd(-70, 70)
-				if clear(x, z) and placed < 380 then
-					Props.tree(island, x, z, kinds[1 + math.floor(rnd(0, #kinds - 0.001))], rnd(1, 1.9))
-					placed += 1
+
+		local rnd = Props.rng(424242)
+		local CELL = 100
+		local n = math.floor(Campus.Edge / CELL)
+		local hood = root:group("Neighbourhoods")
+		local counts = {}
+		for ix = -n, n - 1 do
+			for iz = -n, n - 1 do
+				local cx, cz = (ix + 0.5) * CELL, (iz + 0.5) * CELL
+				local h = CELL / 2 - 4
+				if clear(cx, cz) and clear(cx - h, cz - h) and clear(cx + h, cz - h) and clear(cx - h, cz + h) and clear(cx + h, cz + h) then
+					-- the mix depends on the quarter of the map: town in the north and south, woods in the east
+					local a = math.deg(math.atan2(cx, cz)) % 360
+					local wTown, wWood = 0.42, 0.22
+					if a > 60 and a < 120 then
+						wTown, wWood = 0.18, 0.5
+					elseif a > 150 and a < 210 then
+						wTown, wWood = 0.55, 0.12
+					end
+					local roll = rnd()
+					-- houses face the nearest hub road, so streets read as streets
+					local yaw = (math.floor((a + 45) / 90) % 4) * 90 + 180
+					local kind
+					if roll < wTown * 0.75 then
+						kind = "houses"
+						local lane = hood:shift(cx, 0, cz, yaw)
+						lane:box(0, -0.05, -38, CELL, 0.3, 12, Pal.stoneWarm, M.Pavement, { decor = true })
+						Props.house(lane, -24, 4, 0, rnd)
+						Props.house(lane, 24, 4, 0, rnd)
+						Props.tree(lane, rnd(-40, 40), 38, if rnd() > 0.5 then "blossom" else "round", rnd(0.9, 1.3))
+						Props.lamp(lane:shift(0, 0, -30, 180), 0, 0, hex(0xffe6a8), rnd() > 0.6, 12)
+					elseif roll < wTown then
+						kind = "shops"
+						local lane = hood:shift(cx, 0, cz, yaw)
+						lane:box(0, -0.05, -38, CELL, 0.3, 12, Pal.stoneWarm, M.Pavement, { decor = true })
+						Props.shopRow(lane, 0, 0, 0, rnd)
+					elseif roll < wTown + wWood then
+						kind = "woods"
+						for _ = 1, 9 do
+							Props.tree(hood, cx + rnd(-44, 44), cz + rnd(-44, 44), if rnd() > 0.4 then "pine" else (if rnd() > 0.5 then "round" else "autumn"), rnd(1.1, 1.9))
+						end
+						Props.bush(hood, cx + rnd(-40, 40), cz + rnd(-40, 40), Pal.leafLight, rnd(1.8, 2.8))
+						hood:ball(cx + rnd(-40, 40), -1, cz + rnd(-40, 40), rnd(2.5, 5), Pal.rock, M.Rock, { name = "Rock" })
+					elseif roll < wTown + wWood + 0.1 then
+						kind = "park"
+						Props.park(hood, cx, cz, rnd)
+					elseif roll < wTown + wWood + 0.18 then
+						kind = "field"
+						Props.field(hood, cx, cz, yaw, rnd)
+					elseif roll < wTown + wWood + 0.24 then
+						kind = "court"
+						Props.court(hood, cx, cz, yaw, rnd)
+					else
+						kind = "meadow"
+						for _ = 1, 2 do
+							Props.tree(hood, cx + rnd(-40, 40), cz + rnd(-40, 40), "round", rnd(1, 1.5))
+						end
+					end
+					counts[kind] = (counts[kind] or 0) + 1
 				end
 			end
 		end
-		local stones = 0
-		guard = 0
-		while stones < 90 and guard < 2000 do
-			guard += 1
-			local x, z = rnd(-Campus.Edge, Campus.Edge), rnd(-Campus.Edge, Campus.Edge)
-			if clear(x, z) then
-				if stones % 3 == 0 then
-					Props.bush(island, x, z, if stones % 2 == 0 then Pal.leafLight else Pal.blossomDeep, rnd(1.8, 3))
-				else
-					island:ball(x, rnd(-1, 0.5), z, rnd(2, 6), if stones % 2 == 0 then Pal.rock else hex(0x7d8496), M.Rock, { name = "Rock" })
-				end
-				stones += 1
-			end
-		end
-		-- a lake between the Skydock and the Arcline campus
-		local lake = island:shift(-520, 0, 900)
+		Campus.FillCounts = counts
+
+		local lake = root:group("Lake", LAKE.X, 0, LAKE.Z)
 		lake:cyl(0, -0.4, 0, 150, 0.5, Pal.water, M.Glass, { trans = 0.2, refl = 0.35, name = "Lake", collide = false })
 		lake:cyl(0, -0.45, 0, 158, 0.5, hex(0xcab890), M.Sand, { decor = true })
-		lake:box(-60, 0.4, 0, 120, 0.8, 10, Pal.wood, M.WoodPlanks, { name = "Pier" })
-		Props.bench(lake, -110, 8, 0)
+		lake:box(0, 0.4, -110, 10, 0.8, 90, Pal.wood, M.WoodPlanks, { name = "Pier" })
+		Props.bench(lake, 8, -150, 0)
+		Props.tree(lake, -150, -60, "blossom", 1.4)
+		Props.tree(lake, 140, -80, "round", 1.3)
 	end
 
 	-- =========================================================================================

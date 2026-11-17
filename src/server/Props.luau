@@ -260,4 +260,114 @@ function Props.airship(b, x: number, y: number, z: number, yawDeg: number, accen
 	f:box(0, 9 * s, 28 * s, 1 * s, 9 * s, 10 * s, hull, M.SmoothPlastic, { decor = true })
 end
 
+-- ---------------------------------------------------------------------------------------------
+-- Neighbourhood pieces used to fill the land between the districts
+-- ---------------------------------------------------------------------------------------------
+local WALLS = { hex(0xf4efe4), hex(0xffffff), hex(0xdce8f5), hex(0xf6dfe4), hex(0xe0eedb), hex(0xe9dcc6), hex(0xd9d4e8) }
+local ROOFS = { hex(0x2b3a5c), hex(0xb0563a), hex(0x2f5b46), hex(0x4a4f5e), hex(0x7a2f3a), hex(0x3b5f8a) }
+
+--- A house whose front door faces local -Z. Origin = centre of the footprint on the ground.
+function Props.house(b, x: number, z: number, yawDeg: number, rnd)
+	local f = b:shift(x, 0, z, yawDeg)
+	local w, d = rnd(18, 26), rnd(16, 21)
+	local twoStorey = rnd() > 0.5
+	local h = if twoStorey then rnd(15, 18) else rnd(9.5, 11)
+	local wall = WALLS[1 + math.floor(rnd(0, #WALLS - 0.001))]
+	local roof = ROOFS[1 + math.floor(rnd(0, #ROOFS - 0.001))]
+	f:box(0, 0, 0, w + 2, 0.6, d + 2, Pal.stoneDark, M.Concrete)
+	f:box(0, 0.6, 0, w, h, d, wall, M.SmoothPlastic, { name = "House" })
+	local rh = rnd(5, 8)
+	f:wedge(0, h + 0.6, -(d + 2) / 4, w + 2, rh, (d + 2) / 2, 0, roof, M.Slate, { name = "Roof" })
+	f:wedge(0, h + 0.6, (d + 2) / 4, w + 2, rh, (d + 2) / 2, 180, roof, M.Slate, { name = "Roof" })
+	f:box(0, 0.6, -d / 2 - 0.15, 3.4, 7, 0.4, Pal.woodDark, M.Wood, { decor = true })
+	f:box(0, 7.8, -d / 2 - 1.2, 5.4, 0.4, 2.6, roof, M.Slate, { decor = true })
+	local glow = hex(0xffe6a8)
+	for _, sx in { -w / 4 - 1, w / 4 + 1 } do
+		f:box(sx, 3.4, -d / 2 - 0.1, 3.6, 3, 0.25, glow, M.Neon, { decor = true, trans = 0.35 })
+		if twoStorey then
+			f:box(sx, h - 5.5, -d / 2 - 0.1, 3.6, 3, 0.25, glow, M.Neon, { decor = true, trans = 0.35 })
+		end
+	end
+	if rnd() > 0.55 then
+		f:box(w / 3, h + 0.6, d / 5, 2.4, rh + 2, 2.4, hex(0x8a5a48), M.Brick, { decor = true })
+	end
+	f:box(0, 0, -d / 2 - 4, 3.4, 0.35, 7, Pal.stoneWarm, M.Pavement, { decor = true })
+	if rnd() > 0.4 then
+		Props.bush(f, -w / 2 + 1, -d / 2 - 3, if rnd() > 0.5 then Pal.leafLight else Pal.blossomDeep, 1.5)
+	end
+end
+
+--- A row of small shops with awnings, fronts facing local -Z.
+function Props.shopRow(b, x: number, z: number, yawDeg: number, rnd)
+	local f = b:shift(x, 0, z, yawDeg)
+	local colors = { hex(0xff4fd8), hex(0x39c9ff), hex(0xffc94a), hex(0x7dff7a), hex(0xff7a2a), hex(0xb06bff) }
+	local names = { "TEA", "BAKERY", "BOOKS", "FLOWERS", "GEAR", "SNACKS", "MUSIC", "TAILOR", "CAFE", "GAMES" }
+	for i = -1, 1 do
+		local c = colors[1 + math.floor(rnd(0, #colors - 0.001))]
+		local sx = i * 26
+		f:box(sx, 0, 0, 24, 14, 18, WALLS[1 + math.floor(rnd(0, #WALLS - 0.001))], M.SmoothPlastic, { name = "Shop" })
+		f:box(sx, 14, 0, 25, 1.2, 19, Kit.shade(c, 0.6), M.Slate)
+		f:box(sx, 0.2, -9.1, 18, 8, 0.3, hex(0xcfe9ff), M.Glass, { decor = true, trans = 0.4 })
+		f:box(sx, 8.6, -11, 22, 0.5, 4.4, c, M.Fabric, { decor = true, rot = CFrame.Angles(math.rad(-12), 0, 0) })
+		local sign = f:box(sx, 10, -9.25, 16, 3, 0.3, Pal.night, M.SmoothPlastic, { decor = true })
+		Kit.label(sign, Enum.NormalId.Front, names[1 + math.floor(rnd(0, #names - 0.001))], { color = c })
+	end
+	f:box(0, 0, -16, 80, 0.35, 10, Pal.stoneWarm, M.Pavement, { decor = true })
+	Props.lamp(f:shift(-40, 0, -14, -90), 0, 0, hex(0xffe6a8), true, 12)
+end
+
+--- Crop field with a small barn.
+function Props.field(b, x: number, z: number, yawDeg: number, rnd)
+	local f = b:shift(x, 0, z, yawDeg)
+	local crop = if rnd() > 0.5 then hex(0x8fbf4a) else hex(0xe2c25a)
+	for i = 0, 7 do
+		f:box(-24 + i * 7, 0, 6, 4, 1.4, 56, if i % 2 == 0 then crop else Kit.shade(crop, 0.85), M.Grass, { decor = true })
+	end
+	f:box(-32, 0, 6, 0.5, 3, 60, Pal.wood, M.Wood, { decor = true })
+	f:box(32, 0, 6, 0.5, 3, 60, Pal.wood, M.Wood, { decor = true })
+	f:box(20, 0, -32, 16, 12, 12, hex(0x9c3b32), M.WoodPlanks, { name = "Barn" })
+	f:wedge(20, 12, -35, 17, 5, 6.5, 0, hex(0x4a4f5e), M.Slate)
+	f:wedge(20, 12, -29, 17, 5, 6.5, 180, hex(0x4a4f5e), M.Slate)
+	f:box(20, 0, -38.2, 6, 8, 0.3, Pal.white, M.Wood, { decor = true })
+end
+
+--- Small park: crossing paths, flower beds, benches and a centrepiece.
+function Props.park(b, x: number, z: number, rnd)
+	local f = b:shift(x, 0, z)
+	f:box(0, -0.05, 0, 80, 0.3, 6, Pal.stoneWarm, M.Pavement, { decor = true })
+	f:box(0, -0.05, 0, 6, 0.3, 80, Pal.stoneWarm, M.Pavement, { decor = true })
+	if rnd() > 0.5 then
+		Props.fountain(f, 0, 0, 8, Pal.water)
+	else
+		f:cyl(0, 0, 0, 4, 2, Pal.stone, M.Marble)
+		f:box(0, 2, 0, 2.6, 9, 2.6, Pal.stone, M.Marble, { decor = true })
+		f:ball(0, 12.4, 0, 2.2, Pal.gold, M.Metal, { decor = true })
+	end
+	local beds = { Pal.blossomDeep, hex(0xffd24a), hex(0x8f6bff), hex(0xff6a6a) }
+	for i, q in { { -20, -20 }, { 20, -20 }, { -20, 20 }, { 20, 20 } } do
+		f:box(q[1], 0, q[2], 14, 1, 14, Pal.woodDark, M.Wood)
+		f:box(q[1], 1, q[2], 13, 0.7, 13, beds[i], M.Grass, { decor = true })
+		Props.tree(f, q[1] * 1.6, q[2] * 1.6, if i % 2 == 0 then "blossom" else "round", rnd(0.9, 1.2))
+	end
+	Props.bench(f, -10, -6, 90)
+	Props.bench(f, 10, 6, -90)
+end
+
+--- Outdoor sports court with hoops.
+function Props.court(b, x: number, z: number, yawDeg: number, rnd)
+	local f = b:shift(x, 0, z, yawDeg)
+	local c = if rnd() > 0.5 then hex(0x3b6fb5) else hex(0xb5563b)
+	f:box(0, -0.05, 0, 44, 0.4, 70, c, M.Concrete, { name = "Court" })
+	f:box(0, 0.36, 0, 40, 0.05, 0.6, Pal.white, M.SmoothPlastic, { decor = true })
+	f:cyl(0, 0.36, 0, 7, 0.05, Pal.white, M.SmoothPlastic, { decor = true })
+	for _, sz in { -33, 33 } do
+		f:cyl(0, 0, sz, 0.4, 12, Pal.darkMetal, M.Metal, { decor = true })
+		f:box(0, 11, sz * 0.97, 7, 4.4, 0.4, Pal.white, M.SmoothPlastic, { decor = true })
+		f:cyl(0, 10.4, sz * 0.93, 1.2, 0.2, hex(0xff7a2a), M.Metal, { decor = true })
+	end
+	for _, sx in { -24, 24 } do
+		f:box(sx, 0, 0, 0.3, 4, 72, Pal.darkMetal, M.Metal, { decor = true, trans = 0.3 })
+	end
+end
+
 return Props

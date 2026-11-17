@@ -27,6 +27,16 @@ for _, inst in game:GetDescendants() do
 end
 print(string.format("world built in %.2fs: %d parts, %d lights, %d particle emitters, %d surface guis", os.clock() - started, counts.parts, counts.lights, counts.emitters, counts.guis))
 
+local Campus = requireModule(server:FindFirstChild("Campus"))
+if Campus.FillCounts then
+	local parts = {}
+	for kind, n in Campus.FillCounts do
+		table.insert(parts, kind .. "=" .. n)
+	end
+	table.sort(parts)
+	print("filled cells: " .. table.concat(parts, ", "))
+end
+
 Harness.savePlace(game, "HalcyonClash.rbxl")
 Harness.writeJson("build/scene.json", Harness.dumpScene({ workspace }))
 print("wrote HalcyonClash.rbxl and build/scene.json")
