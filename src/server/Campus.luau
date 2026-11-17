@@ -1,7 +1,7 @@
 --!nonstrict
 -- Campus: the Halcyon Concourse, a floating island shared by the four academies.
 --
--- One large continuous landscape (2700 x 2700 studs) ringed by mountains. Nothing floats.
+-- A hexagonal man-made island city (2700 studs across) on a wide lake. Nothing floats.
 -- The land between the districts is filled with neighbourhoods, woods, parks, fields and courts.
 -- Layout (top view, +Z is south):
 --   centre      the Register Plaza: the spire, the Register boards and the ring of twelve seats
@@ -19,6 +19,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Roster = require(Shared:WaitForChild("Roster"))
 local Kit = require(script.Parent.Kit)
 local Props = require(script.Parent.Props)
+local Arena = require(script.Parent.Arena)
 
 local M = Enum.Material
 local Pal = Props.Pal
@@ -27,9 +28,11 @@ local hex = Kit.hex
 local Campus = {}
 
 Campus.IslandRadius = 520 -- radius of the central hub area
-Campus.Edge = 1350 -- the walkable land runs from -Edge to +Edge on X and Z
+Campus.HexR = 1350 -- the island is a hexagon: distance from the centre to the middle of each edge
+Campus.Edge = Campus.HexR
 Campus.CampusGate = Config.Map.CampusGate
 Campus.PlazaRadius = 124
+Campus.SkyArenaY = 620 -- height of the Sky Arena floor on top of the central tower
 
 -- Where each default seat-holder stands on the plaza ring (degrees). Rookies stand near the Skydock,
 -- the Crownbearer stands in front of the Crown Arena.
@@ -74,44 +77,67 @@ local function build(world: Instance)
 	end
 
 	-- =========================================================================================
-	-- The ground: one big continuous landscape, nothing floating
+	-- The ground: a hexagonal man-made island city, paved and planted, sitting on a wide lake
 	-- =========================================================================================
 	local island = root:group("Ground")
-	for gx = -1, 1 do
-		for gz = -1, 1 do
-			island:box(gx * 1600, -30, gz * 1600, 1600, 30, 1600, if (gx + gz) % 2 == 0 then Pal.grass else hex(0x57a35a), M.Grass, { name = "Ground" })
+	local R = Campus.HexR
+	local edgeLen = R * 2 / math.sqrt(3)
+	local paving = hex(0xc9cfdb)
+	for k = 0, 2 do
+		local yaw = math.rad(k * 60)
+		for _, half in { -1, 1 } do
+			-- each rectangle is split in two so no part is longer than Roblox's 2048-stud limit
+			local cf = CFrame.Angles(0, yaw, 0) * CFrame.new(0, -20, half * R / 2)
+			island:piece("Block", cf, Vector3.new(edgeLen, 40, R), if k == 1 then hex(0xc4cad6) else paving, M.Pavement, { name = "Ground" })
 		end
 	end
-	-- invisible boundary so nobody walks into the mountains
-	local EDGE = Campus.Edge
-	for _, e in { { 0, EDGE, 2 * EDGE, 4 }, { 0, -EDGE, 2 * EDGE, 4 }, { EDGE, 0, 4, 2 * EDGE }, { -EDGE, 0, 4, 2 * EDGE } } do
-		island:box(e[1], 0, e[2], e[3], 200, e[4], Pal.white, M.SmoothPlastic, { trans = 1, name = "Barrier", shadow = false })
+	-- a faint hex grid inlaid in the paving
+	for k = 0, 2 do
+		local yaw = math.rad(k * 60)
+		for i = -6, 6 do
+			island:piece("Block", CFrame.Angles(0, yaw, 0) * CFrame.new(i * 190, 0.03, 0), Vector3.new(0.6, 0.06, 2 * R - 40), hex(0xb7bfcd), M.SmoothPlastic, { decor = true })
+		end
 	end
-	-- rolling hills just past the boundary, then mountains on the horizon
+	-- sea wall, promenade, railing and an invisible barrier along all six edges
+	for k = 0, 5 do
+		local f = island:shift(0, 0, 0, k * 60)
+		f:box(0, -0.1, R - 14, edgeLen, 0.3, 28, hex(0xe7ebf2), M.Marble, { name = "Promenade" })
+		f:box(0, 0.2, R - 27, edgeLen, 0.06, 1, Pal.lumen, M.Neon, { decor = true })
+		f:box(0, 0, R - 0.5, edgeLen, 4, 1.2, Pal.glass, M.Glass, { trans = 0.5, shadow = false })
+		f:box(0, 4, R - 0.5, edgeLen, 0.5, 1.6, Pal.lumen, M.Neon, { decor = true })
+		f:box(0, 0, R + 1, edgeLen + 40, 200, 2, Pal.white, M.SmoothPlastic, { trans = 1, name = "Barrier", shadow = false })
+		f:box(0, -40, R - 1, edgeLen + 2, 2, 2, Pal.lumen, M.Neon, { decor = true })
+		for j = -4, 4 do
+			local lx = j * edgeLen / 9
+			Props.lamp(f:shift(lx, 0, R - 6, 0), 0, 0, Pal.lumen, j % 2 == 0, 12)
+			Props.bench(f, lx + edgeLen / 18, R - 9, 180)
+		end
+	end
+	-- the lake around the island
+	local water = root:group("Lake")
+	for gx = -2, 2 do
+		for gz = -2, 2 do
+			water:box(gx * 2000, -14, gz * 2000, 2000, 2, 2000, hex(0x2b6aa3), M.SmoothPlastic, { name = "LakeWater", refl = 0.25, collide = false, shadow = false })
+		end
+	end
+	-- far shore: low green hills and distant mountains across the water
 	do
 		local rndm = Props.rng(777)
-		for i = 0, 71 do
-			local a = math.rad(i * 5 + rndm(-2, 2))
-			local r = rndm(EDGE + 120, EDGE + 380)
-			local radius = rndm(140, 260)
-			local x, z = math.sin(a) * r, math.cos(a) * r
-			island:ball(x, -radius * rndm(0.55, 0.75), z, radius, Kit.mix(Pal.grass, Pal.grassDark, rndm(0, 1)), M.Grass, { decor = true })
-			if i % 3 == 0 then
-				Props.tree(island, x * 0.97, z * 0.97, "pine", rndm(1.6, 2.4))
-			end
+		for i = 0, 59 do
+			local a = math.rad(i * 6 + rndm(-2, 2))
+			local r = rndm(3400, 3800)
+			local radius = rndm(260, 480)
+			island:ball(math.sin(a) * r, -radius * rndm(0.6, 0.8), math.cos(a) * r, radius, Kit.mix(Pal.grass, Pal.grassDark, rndm(0, 1)), M.Grass, { decor = true })
 		end
 		for i = 0, 35 do
 			local a = math.rad(i * 10 + rndm(-4, 4))
-			local r = rndm(EDGE + 650, EDGE + 1000)
-			local w, h = rndm(380, 640), rndm(260, 520)
+			local r = rndm(4300, 4900)
+			local w, h = rndm(700, 1100), rndm(500, 900)
 			local f = island:shift(math.sin(a) * r, 0, math.cos(a) * r, math.deg(a) + 45 + rndm(-10, 10))
 			local rock = Kit.mix(hex(0x6b7690), hex(0x8b96ad), rndm(0, 1))
-			-- a four-sided peak: two wedge pairs at right angles
 			for _, yaw in { 0, 90 } do
 				f:wedge(0, -30, -w * 0.25, w, h, w * 0.5, 180 + yaw, rock, M.Rock, { decor = true, rot = CFrame.Angles(0, math.rad(yaw), 0) })
 				f:wedge(0, -30, w * 0.25, w, h, w * 0.5, yaw, Kit.shade(rock, 0.9), M.Rock, { decor = true, rot = CFrame.Angles(0, math.rad(yaw), 0) })
-			end
-			for _, yaw in { 0, 90 } do
 				f:wedge(0, h * 0.68 - 30, -w * 0.08, w * 0.32, h * 0.32, w * 0.16, 180 + yaw, hex(0xf2f6fb), M.Snow, { decor = true, rot = CFrame.Angles(0, math.rad(yaw), 0) })
 				f:wedge(0, h * 0.68 - 30, w * 0.08, w * 0.32, h * 0.32, w * 0.16, yaw, hex(0xe4ebf5), M.Snow, { decor = true, rot = CFrame.Angles(0, math.rad(yaw), 0) })
 			end
@@ -136,38 +162,92 @@ local function build(world: Instance)
 		f:box(0, 0, 0, 0.5, 0.07, 39, Pal.gold, M.Neon, { decor = true })
 	end, 11.25)
 
-	-- The spire
-	local spire = plaza:group("RegisterSpire")
-	spire:cyl(0, 0.66, 0, 15, 1.4, Pal.slate, M.Marble)
-	spire:cyl(0, 2.06, 0, 12.6, 0.3, Pal.lumen, M.Neon, { decor = true })
-	spire:cyl(0, 2.06, 0, 12, 1.0, Pal.stone, M.Marble)
-	spire:cyl(0, 3.06, 0, 3.4, 104, Pal.glass, M.Glass, { trans = 0.5, shadow = false })
-	local core = spire:cyl(0, 3.06, 0, 1.4, 108, Pal.lumen, M.Neon, { decor = true, name = "SpireCore" })
-	Kit.glow(core, 60, 2.2, Pal.lumen)
-	for i, h in { 34, 54, 74, 92 } do
-		local r = 15 - i * 2.2
-		local seg = 2 * math.pi * r / 14 + 0.25
-		spire:ring(0, h, 0, r, 14, function(f)
-			f:box(0, 0, 0, seg, 1.3, 0.9, if i % 2 == 0 then Pal.lumen else Pal.gold, M.Neon, { decor = true })
-		end)
+	-- The Halcyon Spire: a hexagonal tower in the middle of the city, carrying the Sky Arena where the
+	-- tournaments are held. The Skylift at its foot carries students to the top and back.
+	local spire = plaza:group("HalcyonSpire")
+	local TOP = Campus.SkyArenaY
+	local white = hex(0xf2f5fb)
+	local glassBlue = hex(0x9fd8ff)
+	-- base: a stepped hexagonal podium
+	for i, r in { 30, 26, 22 } do
+		for k = 0, 2 do
+			spire:box(0, 0.66 + (i - 1) * 2, 0, r * 2, 2, r * 2 / math.sqrt(3), if i == 2 then Pal.slate else white, M.Marble, { rot = CFrame.Angles(0, math.rad(k * 60), 0) })
+		end
 	end
-	spire:ring(0, 110, 0, 4.4, 6, function(f)
-		f:wedge(0, 0, 0, 2.4, 8, 3.4, 0, Pal.gold, M.Neon, { decor = true })
-	end)
-	local star = spire:ball(0, 121, 0, 3, Pal.white, M.Neon, { decor = true, name = "SpireStar" })
-	Kit.glow(star, 60, 3, Pal.gold)
-	Kit.sparkles(core, Pal.lumen, 10, { Speed = NumberRange.new(2, 5), Lifetime = NumberRange.new(2, 4) })
-
-	-- Register boards, one facing the Skydock and one facing the Crown Arena
+	spire:cyl(0, 6.66, 0, 21, 0.2, Pal.lumen, M.Neon, { decor = true })
+	-- the shaft: glass hexagon with white ribs at every corner
+	local shaftY, shaftH = 6.7, TOP - 112
+	for k = 0, 2 do
+		spire:box(0, shaftY, 0, 28, shaftH, 28 / math.sqrt(3), glassBlue, M.Glass, { trans = 0.35, refl = 0.25, shadow = false, rot = CFrame.Angles(0, math.rad(k * 60), 0), name = "SpireShaft" })
+	end
+	local core = spire:cyl(0, shaftY, 0, 3.2, shaftH, Pal.lumen, M.Neon, { decor = true, name = "SpireCore" })
+	Kit.glow(core, 60, 2.2, Pal.lumen)
+	for k = 0, 5 do
+		local a = math.rad(30 + k * 60)
+		spire:box(math.sin(a) * 16.2, shaftY, math.cos(a) * 16.2, 2.6, shaftH, 2.6, white, M.SmoothPlastic, { rot = CFrame.Angles(0, a, 0) })
+		spire:box(math.sin(a) * 17.6, shaftY, math.cos(a) * 17.6, 0.5, shaftH, 0.5, Pal.lumen, M.Neon, { decor = true })
+	end
+	-- observation rings up the shaft
+	for i, h in { 120, 240, 360 } do
+		spire:cyl(0, h, 0, 26 - i * 2, 4, white, M.SmoothPlastic, { decor = true })
+		spire:cyl(0, h + 4, 0, 26.5 - i * 2, 0.6, if i % 2 == 0 then Pal.gold else Pal.lumen, M.Neon, { decor = true })
+		spire:cyl(0, h - 6, 0, 24 - i * 2, 6, glassBlue, M.Glass, { decor = true, trans = 0.2 })
+	end
+	-- the crown: six struts flaring out to carry the arena
+	local crownY = TOP - 112
+	for k = 0, 5 do
+		local a = math.rad(k * 60)
+		spire:bar(Vector3.new(math.sin(a) * 15, crownY - 60, math.cos(a) * 15), Vector3.new(math.sin(a) * 62, TOP - 30, math.cos(a) * 62), 5, white, M.SmoothPlastic)
+		spire:bar(Vector3.new(math.sin(a) * 18, crownY - 56, math.cos(a) * 18), Vector3.new(math.sin(a) * 65, TOP - 26, math.cos(a) * 65), 0.8, Pal.lumen, M.Neon, { decor = true })
+	end
+	spire:cyl(0, crownY, 0, 34, 12, white, M.SmoothPlastic)
+	spire:cyl(0, crownY + 12, 0, 34.5, 1, Pal.lumen, M.Neon, { decor = true })
+	-- the Sky Arena itself
+	local skyArena = Arena.build(spire.parent, { name = "SkyArena", skyline = false, shell = hex(0xeef2f8) })
+	-- the arena is built around the origin; move it straight up (its pivot carries the round floor's tilt)
+	skyArena:PivotTo(CFrame.new(0, TOP, 0) * skyArena:GetPivot())
+	for _, d in skyArena:GetDescendants() do
+		if d:IsA("BasePart") and d.Name == "Jumbotron" then
+			local text = d:FindFirstChildWhichIsA("TextLabel", true)
+			if text then
+				text.Text = "SKY ARENA"
+			end
+		end
+	end
+	-- the Skylift: a glass lobby at the foot of the tower, and an arrival pad up top
 	for _, yaw in { 0, 180 } do
 		local f = spire:shift(0, 0, 0, yaw)
-		for _, sx in { -21, 21 } do
-			f:box(sx, 0.66, 19.5, 2.6, 27, 2.6, Pal.darkMetal, M.Metal)
-			f:box(sx, 27.66, 19.5, 3.2, 0.7, 3.2, Pal.lumen, M.Neon, { decor = true })
+		f:box(0, 6.66, 15.2, 12, 16, 3, glassBlue, M.Glass, { trans = 0.3, name = "LiftDoor" })
+		f:box(0, 22.66, 15.6, 14, 1, 4, Pal.lumen, M.Neon, { decor = true })
+		f:box(0, 0.66, 22, 14, 6.1, 10, white, M.Marble)
+		local pad = f:cyl(0, 6.76, 21, 5, 0.3, Pal.lumen, M.Neon, { name = "SkyliftPad" })
+		prompt(pad, "lift:up", "Ride the Skylift", "To the Sky Arena", 14)
+		local sign = f:box(0, 24, 16, 22, 4, 0.6, Pal.night, M.Glass, { decor = true })
+		Kit.label(sign, Enum.NormalId.Back, "SKYLIFT  ▲  SKY ARENA", { color = Pal.lumen })
+		anchor("LiftBottom_" .. yaw, f, 0, 9, 30, 0)
+	end
+	-- stairs up to the lift lobby
+	for _, yaw in { 0, 180 } do
+		local f = spire:shift(0, 0, 0, yaw)
+		for st = 0, 5 do
+			f:box(0, 0.66, 27 + st * 1.6, 14, 6 - st, 1.6, white, M.Marble)
 		end
-		f:box(0, 4.3, 19.5, 40, 0.7, 1.4, Pal.lumen, M.Neon, { decor = true })
-		f:box(0, 26, 19.5, 40, 0.7, 1.4, Pal.lumen, M.Neon, { decor = true })
-		local board = f:box(0, 5, 19.5, 39.4, 21, 0.8, Pal.night, M.Glass, { trans = 0.12, name = "RegisterBoard" })
+	end
+	local topPad = spire:cyl(0, TOP + 0.2, 51, 4.5, 0.3, Pal.lumen, M.Neon, { name = "SkyliftTop" })
+	prompt(topPad, "lift:down", "Ride the Skylift", "Down to the city", 12)
+	anchor("LiftTop", spire, 0, TOP + 3, 51, 180)
+	Kit.sparkles(core, Pal.lumen, 10, { Speed = NumberRange.new(2, 5), Lifetime = NumberRange.new(2, 4) })
+
+	-- Register boards, one each side of the tower
+	for _, yaw in { 90, 270 } do
+		local f = spire:shift(0, 0, 0, yaw)
+		for _, sx in { -21, 21 } do
+			f:box(sx, 0.66, 44, 2.6, 27, 2.6, Pal.darkMetal, M.Metal)
+			f:box(sx, 27.66, 44, 3.2, 0.7, 3.2, Pal.lumen, M.Neon, { decor = true })
+		end
+		f:box(0, 4.3, 44, 40, 0.7, 1.4, Pal.lumen, M.Neon, { decor = true })
+		f:box(0, 26, 44, 40, 0.7, 1.4, Pal.lumen, M.Neon, { decor = true })
+		local board = f:box(0, 5, 44, 39.4, 21, 0.8, Pal.night, M.Glass, { trans = 0.12, name = "RegisterBoard" })
 		Kit.label(board, Enum.NormalId.Back, "THE REGISTER", { color = Pal.lumen, sizeY = 0.3, name = "Baked" })
 		prompt(board, "register", "Read", "The Register", 30)
 	end
@@ -203,8 +283,8 @@ local function build(world: Instance)
 		local accent = if academy then Config.Academies[academy].accent else Pal.lumen
 		local width = if academy then 24 else 32
 		local av = spoke("Avenue" .. k, a, 218)
-		av:box(0, -0.2, 0, width, 0.34, 200, Pal.stone, M.Marble, { name = "Road" })
-		av:box(0, 0.14, 0, width * 0.34, 0.05, 200, Pal.stoneWarm, M.Marble, { decor = true })
+		av:box(0, -0.2, 0, width, 0.34, 200, hex(0x3b4152), M.Asphalt, { name = "Road" })
+		av:box(0, 0.14, 0, 0.8, 0.05, 200, Pal.white, M.SmoothPlastic, { decor = true })
 		for _, side in { -1, 1 } do
 			av:box(side * (width / 2 - 0.5), 0.14, 0, 0.6, 0.06, 200, accent, M.Neon, { decor = true })
 			for j = 0, 4 do
@@ -228,8 +308,8 @@ local function build(world: Instance)
 		local accent = Config.Academies[academy].accent
 		local len = Campus.CampusGate - 318
 		local road = spoke("Road_" .. academy, a, 318 + len / 2)
-		road:box(0, -0.2, 0, 24, 0.34, len, Pal.stone, M.Marble, { name = "Road" })
-		road:box(0, 0.14, 0, 8, 0.05, len, Pal.stoneWarm, M.Marble, { decor = true })
+		road:box(0, -0.2, 0, 24, 0.34, len, hex(0x3b4152), M.Asphalt, { name = "Road" })
+		road:box(0, 0.14, 0, 0.8, 0.05, len, Pal.white, M.SmoothPlastic, { decor = true })
 		for _, side in { -1, 1 } do
 			road:box(side * 11.5, 0.14, 0, 0.6, 0.06, len, accent, M.Neon, { decor = true })
 			for j = 0, math.floor(len / 60) do
@@ -967,6 +1047,7 @@ local function build(world: Instance)
 		local a = 22.5 + 45 * k
 		local s = spoke("Garden" .. k, a, 236)
 		local rnd = Props.rng(1009 + k * 77)
+		s:cyl(0, -0.05, 0, 64, 0.25, Pal.grass, M.Grass, { name = "Lawn" })
 		if k == 0 or k == 7 then
 			grove(s, rnd, { "blossom", "round", "blossom" })
 		elseif k == 3 then
@@ -982,8 +1063,8 @@ local function build(world: Instance)
 		end
 	end
 
-	-- Neighbourhoods: the land between the districts is split into 100-stud cells, and every free cell
-	-- gets something (houses, shops, woods, a park, a field or a court). A few stay open meadow.
+	-- City blocks: the land between the districts is split into 100-stud cells, and every free cell gets
+	-- something: white high-rises, shop streets, plazas, parks, canals or courts.
 	do
 		local LAKE = Vector3.new(300, 0, 1000)
 		local function clear(x: number, z: number): boolean
@@ -991,7 +1072,7 @@ local function build(world: Instance)
 			if r < 345 then
 				return false
 			end
-			if math.abs(x) > Campus.Edge - 60 or math.abs(z) > Campus.Edge - 60 then
+			if not Campus.inside(x, z, 70) then
 				return false
 			end
 			local a = math.deg(math.atan2(x, z)) % 360
@@ -1023,60 +1104,50 @@ local function build(world: Instance)
 
 		local rnd = Props.rng(424242)
 		local CELL = 100
-		local n = math.floor(Campus.Edge / CELL)
-		local hood = root:group("Neighbourhoods")
+		local n = math.ceil(Campus.HexR * 2 / math.sqrt(3) / CELL)
+		local hood = root:group("CityBlocks")
 		local counts = {}
 		for ix = -n, n - 1 do
 			for iz = -n, n - 1 do
 				local cx, cz = (ix + 0.5) * CELL, (iz + 0.5) * CELL
 				local h = CELL / 2 - 4
 				if clear(cx, cz) and clear(cx - h, cz - h) and clear(cx + h, cz - h) and clear(cx - h, cz + h) and clear(cx + h, cz + h) then
-					-- the mix depends on the quarter of the map: town in the north and south, woods in the east
 					local a = math.deg(math.atan2(cx, cz)) % 360
-					local wTown, wWood = 0.42, 0.22
-					if a > 60 and a < 120 then
-						wTown, wWood = 0.18, 0.5
-					elseif a > 150 and a < 210 then
-						wTown, wWood = 0.55, 0.12
-					end
 					local roll = rnd()
-					-- houses face the nearest hub road, so streets read as streets
 					local yaw = (math.floor((a + 45) / 90) % 4) * 90 + 180
+					local rc = math.sqrt(cx * cx + cz * cz)
+					local underRail = rc > 515 and rc < 640 -- nothing tall under the monorail
 					local kind
-					if roll < wTown * 0.75 then
-						kind = "houses"
+					if roll < 0.42 and not underRail then
+						kind = "highrise"
 						local lane = hood:shift(cx, 0, cz, yaw)
-						lane:box(0, -0.05, -38, CELL, 0.3, 12, Pal.stoneWarm, M.Pavement, { decor = true })
-						Props.house(lane, -24, 4, 0, rnd)
-						Props.house(lane, 24, 4, 0, rnd)
-						Props.tree(lane, rnd(-40, 40), 38, if rnd() > 0.5 then "blossom" else "round", rnd(0.9, 1.3))
-						Props.lamp(lane:shift(0, 0, -30, 180), 0, 0, hex(0xffe6a8), rnd() > 0.6, 12)
-					elseif roll < wTown then
+						lane:box(0, -0.05, -40, CELL, 0.3, 12, hex(0x3b4152), M.Asphalt, { decor = true })
+						lane:box(0, 0.25, -40, CELL, 0.05, 0.6, Pal.white, M.SmoothPlastic, { decor = true })
+						Props.highrise(lane, -22, 8, 0, rnd, if rc < 700 then 110 else 160)
+						if rnd() > 0.35 then
+							Props.highrise(lane, 24, 10, 0, rnd, 90)
+						else
+							Props.tree(lane, 26, 6, "round", 1.1)
+							Props.bench(lane, 26, -22, 0)
+						end
+						Props.lamp(lane:shift(0, 0, -33, 180), 0, 0, Pal.lumen, rnd() > 0.6, 12)
+					elseif roll < 0.56 then
 						kind = "shops"
 						local lane = hood:shift(cx, 0, cz, yaw)
-						lane:box(0, -0.05, -38, CELL, 0.3, 12, Pal.stoneWarm, M.Pavement, { decor = true })
+						lane:box(0, -0.05, -38, CELL, 0.3, 12, hex(0x3b4152), M.Asphalt, { decor = true })
 						Props.shopRow(lane, 0, 0, 0, rnd)
-					elseif roll < wTown + wWood then
-						kind = "woods"
-						for _ = 1, 9 do
-							Props.tree(hood, cx + rnd(-44, 44), cz + rnd(-44, 44), if rnd() > 0.4 then "pine" else (if rnd() > 0.5 then "round" else "autumn"), rnd(1.1, 1.9))
-						end
-						Props.bush(hood, cx + rnd(-40, 40), cz + rnd(-40, 40), Pal.leafLight, rnd(1.8, 2.8))
-						hood:ball(cx + rnd(-40, 40), -1, cz + rnd(-40, 40), rnd(2.5, 5), Pal.rock, M.Rock, { name = "Rock" })
-					elseif roll < wTown + wWood + 0.1 then
+					elseif roll < 0.72 then
+						kind = "plaza"
+						Props.plaza(hood, cx, cz, rnd)
+					elseif roll < 0.84 then
 						kind = "park"
 						Props.park(hood, cx, cz, rnd)
-					elseif roll < wTown + wWood + 0.18 then
-						kind = "field"
-						Props.field(hood, cx, cz, yaw, rnd)
-					elseif roll < wTown + wWood + 0.24 then
+					elseif roll < 0.92 then
+						kind = "canal"
+						Props.canal(hood, cx, cz, (math.floor(a / 60) % 2) * 90, rnd)
+					else
 						kind = "court"
 						Props.court(hood, cx, cz, yaw, rnd)
-					else
-						kind = "meadow"
-						for _ = 1, 2 do
-							Props.tree(hood, cx + rnd(-40, 40), cz + rnd(-40, 40), "round", rnd(1, 1.5))
-						end
 					end
 					counts[kind] = (counts[kind] or 0) + 1
 				end
@@ -1084,9 +1155,9 @@ local function build(world: Instance)
 		end
 		Campus.FillCounts = counts
 
-		local lake = root:group("Lake", LAKE.X, 0, LAKE.Z)
-		lake:cyl(0, -0.4, 0, 150, 0.5, Pal.water, M.Glass, { trans = 0.2, refl = 0.35, name = "Lake", collide = false })
-		lake:cyl(0, -0.45, 0, 158, 0.5, hex(0xcab890), M.Sand, { decor = true })
+		local lake = root:group("Pool", LAKE.X, 0, LAKE.Z)
+		lake:cyl(0, -0.3, 0, 150, 0.5, Pal.water, M.Glass, { trans = 0.15, refl = 0.35, name = "Pool", collide = false })
+		lake:cyl(0, -0.45, 0, 158, 0.6, Pal.white, M.Marble, { decor = true })
 		lake:box(0, 0.4, -110, 10, 0.8, 90, Pal.wood, M.WoodPlanks, { name = "Pier" })
 		Props.bench(lake, 8, -150, 0)
 		Props.tree(lake, -150, -60, "blossom", 1.4)
@@ -1207,6 +1278,36 @@ local function build(world: Instance)
 	end
 
 	-- =========================================================================================
+	-- The monorail: an elevated loop around the centre, on white pillars
+	-- =========================================================================================
+	do
+		local rail = root:group("Monorail")
+		local RR, H = 575, 34
+		local seg = 2 * math.pi * RR / 48 + 0.6
+		rail:ring(0, H, 0, RR, 48, function(f)
+			f:box(0, 0, 0, seg, 3, 9, Pal.white, M.SmoothPlastic, { name = "Track" })
+			f:box(0, 3, -3, seg, 0.5, 0.6, Pal.lumen, M.Neon, { decor = true })
+			f:box(0, 3, 3, seg, 0.5, 0.6, Pal.lumen, M.Neon, { decor = true })
+		end)
+		rail:ring(0, 0, 0, RR, 24, function(f)
+			f:cyl(0, 0, 0, 2.6, H, Pal.white, M.SmoothPlastic)
+			f:box(0, H - 4, 0, 4, 4, 12, Pal.white, M.SmoothPlastic, { decor = true })
+		end, 7.5)
+		-- two trains, four cars each, curving around the loop
+		for t = 0, 1 do
+			for c = 0, 3 do
+				local a = math.rad(t * 180 + 20 + c * 6.2)
+				local pos = Vector3.new(math.sin(a) * RR, H + 3.5, math.cos(a) * RR)
+				local fwd = Vector3.new(math.cos(a), 0, -math.sin(a))
+				local cf = CFrame.lookAt(pos + Vector3.new(0, 4, 0), pos + Vector3.new(0, 4, 0) + fwd)
+				rail:piece("Block", cf, Vector3.new(8, 8, 58), Pal.white, M.SmoothPlastic, { decor = true, name = "TrainCar" })
+				rail:piece("Block", cf * CFrame.new(0, 1, 0), Vector3.new(8.3, 2.6, 52), hex(0x2a3a5a), M.Glass, { decor = true, trans = 0.1 })
+				rail:piece("Block", cf * CFrame.new(0, -3.2, 0), Vector3.new(8.4, 0.6, 58), if t == 0 then Pal.lumen else Pal.gold, M.Neon, { decor = true })
+			end
+		end
+	end
+
+	-- =========================================================================================
 	-- Distant skyline beyond the mountains (standing on the ground)
 	-- =========================================================================================
 	local sky = root:group("Skyline")
@@ -1214,7 +1315,7 @@ local function build(world: Instance)
 	local rnd = Props.rng(9001)
 	for i = 1, 20 do
 		local a = math.rad(i * 18 + rnd(-5, 5))
-		local r = rnd(Campus.Edge + 700, Campus.Edge + 1100)
+		local r = rnd(Campus.HexR + 900, Campus.HexR + 1500)
 		local w, h = rnd(80, 150), rnd(500, 1000)
 		local f = sky:shift(math.sin(a) * r, 0, math.cos(a) * r, rnd(0, 90))
 		f:box(0, -30, 0, w * 1.8, 30, w * 1.8, hex(0x2a3148), M.Concrete, { decor = true })
@@ -1226,6 +1327,18 @@ local function build(world: Instance)
 		end
 	end
 	local _ = Props.islet
+end
+
+--- True when (x, z) is on the island, at least `margin` studs from the sea wall.
+function Campus.inside(x: number, z: number, margin: number?): boolean
+	local limit = Campus.HexR - (margin or 0)
+	for k = 0, 2 do
+		local a = math.rad(k * 60)
+		if math.abs(x * math.sin(a) + z * math.cos(a)) > limit then
+			return false
+		end
+	end
+	return true
 end
 
 --- Builds the whole campus under `parent` and returns its root folder.

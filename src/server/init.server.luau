@@ -41,6 +41,7 @@ local function remote(className: string, name: string)
 end
 local Dialogue = remote("RemoteEvent", "Dialogue")
 local MenuRemote = remote("RemoteFunction", "Menu")
+local LiftRemote = remote("RemoteEvent", "Lift")
 
 local previews = ReplicatedStorage:FindFirstChild(Config.PreviewsName)
 if not previews then
@@ -216,6 +217,23 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 		return
 	end
 	local kind, id = string.match(open, "^(%w+):(.+)$")
+	if kind == "lift" then
+		-- the Skylift between the foot of the central tower and the Sky Arena
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not (humanoid and humanoid.Health > 0) then
+			return
+		end
+		local target = if id == "up" then anchors:FindFirstChild("LiftTop") else anchors:FindFirstChild("LiftBottom_0")
+		if target then
+			pcall(function()
+				player:RequestStreamAroundAsync(target.CFrame.Position, 5)
+			end)
+			character:PivotTo(target.CFrame)
+			LiftRemote:FireClient(player, id)
+		end
+		return
+	end
 	if kind == "talk" then
 		local npc = Roster.get(id)
 		if not npc then

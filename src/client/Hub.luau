@@ -174,8 +174,8 @@ local function startCamera()
 			target = CFrame.lookAt(eye, tower + Vector3.new(0, 170, 0))
 		else
 			local spire = Config.Map.Spire
-			local eye = spire + Vector3.new(math.sin(orbit) * 300, 90, math.cos(orbit) * 300)
-			target = CFrame.lookAt(eye, spire + Vector3.new(0, 10, 0))
+			local eye = spire + Vector3.new(math.sin(orbit) * 620, 80, math.cos(orbit) * 620)
+			target = CFrame.lookAt(eye, spire + Vector3.new(0, 40, 0))
 		end
 		current = current:Lerp(target, math.clamp(dt * 1.6, 0, 1))
 		camera.CFrame = current

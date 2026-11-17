@@ -23,11 +23,17 @@ The world is already inside the place file, so nothing has to be imported by han
   Looks and school are saved (turn on *Game Settings → Security → Enable Studio Access to API Services*
   to save while testing in Studio).
 
-- **One big landscape**, 2,700 × 2,700 studs, ringed by rolling hills and mountains. Nothing floats.
-  The land between the districts is filled with neighbourhoods, shop streets, woods, parks, fields and
-  sports courts, with a few open meadows.
-- **The central hub**: the Register plaza and spire, the arrival station where players spawn, the
-  Training Hall, the Crown Arena gate, the market street, gardens and a lake.
+- **A hexagonal island city on a lake**, about 2,700 studs across: paved streets with a sea-wall
+  promenade around the edge, the lake all around, green hills and mountains on the far shore. Grass is kept
+  to parks and gardens.
+- **City blocks** fill the land between the districts: white high-rises with glass faces and glowing floor
+  bands, shop streets, hex-tiled plazas with hologram screens, canals with footbridges, parks and courts.
+- **An elevated monorail loop** around the centre, with two trains.
+- **The Halcyon Spire** in the middle: a 600-stud hexagonal glass tower carrying the **Sky Arena**, a full
+  stadium where the tournaments will be held. Step on the **Skylift** pad at the tower's foot to ride up,
+  and on the pad up top to ride back down.
+- **The central hub** around the tower: the Register boards and the ring of twelve seats, the arrival
+  station where new players spawn, the Training Hall, the Crown Arena, the market street and gardens.
 - **Four school campuses**, each on its own walled land about 600 studs from the centre, joined to the hub
   by its own road. Every campus has a gate with the school's name, two dormitories, its own duel court and
   rank board, classroom wings, a sports lawn, and a different ground and tower:

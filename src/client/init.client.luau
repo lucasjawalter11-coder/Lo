@@ -18,3 +18,21 @@ remotes:WaitForChild("Dialogue").OnClientEvent:Connect(function(data)
 end)
 
 Hub.init(playerGui)
+
+-- Skylift: a short white flash so the jump between the tower's foot and the Sky Arena reads as a ride
+local flash = Instance.new("ScreenGui")
+flash.Name = "HalcyonFlash"
+flash.IgnoreGuiInset = true
+flash.DisplayOrder = 50
+flash.ResetOnSpawn = false
+local white = Instance.new("Frame")
+white.Size = UDim2.fromScale(1, 1)
+white.BackgroundColor3 = Color3.fromRGB(220, 246, 255)
+white.BackgroundTransparency = 1
+white.BorderSizePixel = 0
+white.Parent = flash
+flash.Parent = playerGui
+remotes:WaitForChild("Lift").OnClientEvent:Connect(function()
+	white.BackgroundTransparency = 0
+	game:GetService("TweenService"):Create(white, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 1 }):Play()
+end)

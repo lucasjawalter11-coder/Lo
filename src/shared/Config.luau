@@ -165,7 +165,7 @@ Config.Sounds = {
 Config.Map = {
 	CampusGate = 600, -- distance from the centre to each school's gate
 	TowerDepth = 300, -- how far inside the gate each school tower stands
-	Spire = Vector3.new(0, 60, 0),
+	Spire = Vector3.new(0, 300, 0), -- what the hub camera circles: the central tower and the Sky Arena
 }
 
 -- Tags and names used to find things in the world

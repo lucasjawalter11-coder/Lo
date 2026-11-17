@@ -13,15 +13,22 @@ local hex = Kit.hex
 
 local Arena = {}
 
-function Arena.build(parent: Instance): Model
+export type ArenaOpts = { name: string?, skyline: boolean?, shell: Color3? }
+
+--- Builds the stadium. `opts.skyline = false` leaves out the distant towers (used for the Sky Arena,
+--- which stands on top of the central tower and already has the whole city around it).
+function Arena.build(parent: Instance, opts: ArenaOpts?): Model
+	local options: ArenaOpts = opts or {}
 	local model = Instance.new("Model")
-	model.Name = Config.ArenaTemplateName
+	model.Name = options.name or Config.ArenaTemplateName
 	local b = Kit.at(model, CFrame.new())
 	local R = Config.Combat.ArenaRadius
 	local rnd = Props.rng(5150)
 
 	-- Ring floor
 	local floor = b:cyl(0, -3, 0, R + 2, 3, Pal.night, M.SmoothPlastic, { name = "Floor", refl = 0.22 })
+	-- concourse between the ring and the stands, where spectators walk
+	b:cyl(0, -3.05, 0, 60, 3, hex(0x2a3148), M.Concrete, { name = "Concourse" })
 	model.PrimaryPart = floor
 	b:cyl(0, 0, 0, R, 0.06, Pal.lumen, M.Neon, { decor = true })
 	b:cyl(0, 0, 0, R - 1, 0.12, Pal.deck, M.SmoothPlastic, { refl = 0.3, name = "RingFloor" })
@@ -80,8 +87,9 @@ function Arena.build(parent: Instance): Model
 			end
 		end, tier * 7.5)
 	end
+	local shell = options.shell or hex(0x1b2136)
 	b:ring(0, -3, 0, 92, 24, function(f)
-		f:box(0, 0, 0, 24.6, 34, 4, hex(0x1b2136), M.Concrete, { decor = true })
+		f:box(0, 0, 0, 24.6, 34, 4, shell, M.Concrete, { decor = true })
 		f:box(0, 34, 0, 24.6, 1, 4.6, Pal.lumen, M.Neon, { decor = true })
 	end, 7.5)
 
@@ -118,13 +126,13 @@ function Arena.build(parent: Instance): Model
 	Kit.glow(centre, 60, 2.6, hex(0xfff0d0))
 
 	-- Under-structure so the arena reads as a floating platform
-	b:cyl(0, -26, 0, 98, 23, hex(0x1a2032), M.Slate, { decor = true })
-	b:cyl(0, -56, 0, 66, 30, hex(0x151a29), M.Slate, { decor = true })
+	b:cyl(0, -26, 0, 98, 23, if options.shell then shell else hex(0x1a2032), M.Slate, { decor = true })
+	b:cyl(0, -56, 0, 66, 30, if options.shell then Kit.shade(shell, 0.9) else hex(0x151a29), M.Slate, { decor = true })
 	b:cyl(0, -29, 0, 99, 2.6, Pal.lumen, M.Neon, { decor = true })
 	b:cyl(0, -86, 0, 30, 30, hex(0x10141f), M.Slate, { decor = true })
 
 	-- Skyline around the arena
-	for i = 1, 10 do
+	for i = 1, (if options.skyline == false then 0 else 10) do
 		local a = math.rad(i * 36 + rnd(-8, 8))
 		local r = rnd(520, 760)
 		Props.skyTower(b, math.sin(a) * r, rnd(-320, -120), math.cos(a) * r, rnd(60, 110), rnd(420, 760), accents[1 + i % 4], 40 + i)

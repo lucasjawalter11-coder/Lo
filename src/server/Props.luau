@@ -334,6 +334,7 @@ end
 --- Small park: crossing paths, flower beds, benches and a centrepiece.
 function Props.park(b, x: number, z: number, rnd)
 	local f = b:shift(x, 0, z)
+	f:box(0, -0.05, 0, 94, 0.3, 94, Pal.grass, M.Grass, { name = "Lawn" })
 	f:box(0, -0.05, 0, 80, 0.3, 6, Pal.stoneWarm, M.Pavement, { decor = true })
 	f:box(0, -0.05, 0, 6, 0.3, 80, Pal.stoneWarm, M.Pavement, { decor = true })
 	if rnd() > 0.5 then
@@ -367,6 +368,102 @@ function Props.court(b, x: number, z: number, yawDeg: number, rnd)
 	end
 	for _, sx in { -24, 24 } do
 		f:box(sx, 0, 0, 0.3, 4, 72, Pal.darkMetal, M.Metal, { decor = true, trans = 0.3 })
+	end
+end
+
+-- ---------------------------------------------------------------------------------------------
+-- Sky-city pieces: clean white high-rises, plazas and canals
+-- ---------------------------------------------------------------------------------------------
+local TOWER_WHITE = { hex(0xf4f6fa), hex(0xe9edf4), hex(0xdfe5ee), hex(0xf7f3ec) }
+local GLASS = { hex(0x9fd8ff), hex(0x7fb8e8), hex(0xb7e3ff), hex(0x8fc9d8) }
+local BAND = { Pal.lumen, hex(0xffffff), hex(0x7fb8ff), Pal.gold }
+
+--- A futuristic high-rise: a white frame, a glass face, glowing floor bands, sometimes a rounded end.
+function Props.highrise(b, x: number, z: number, yawDeg: number, rnd, maxHeight: number?)
+	local f = b:shift(x, 0, z, yawDeg)
+	local w, d = rnd(26, 40), rnd(22, 32)
+	local h = rnd(40, maxHeight or 140)
+	local white = TOWER_WHITE[1 + math.floor(rnd(0, #TOWER_WHITE - 0.001))]
+	local glass = GLASS[1 + math.floor(rnd(0, #GLASS - 0.001))]
+	local band = BAND[1 + math.floor(rnd(0, #BAND - 0.001))]
+	if rnd() > 0.7 then
+		-- round tower
+		local r = math.min(w, d) * 0.55
+		f:cyl(0, 0, 0, r + 3, 6, white, M.SmoothPlastic, { name = "Building" })
+		f:cyl(0, 6, 0, r, h, glass, M.Glass, { trans = 0.15, refl = 0.3, name = "Building" })
+		for y = 14, h, 14 do
+			f:cyl(0, 6 + y - 1, 0, r + 0.6, 1.2, white, M.SmoothPlastic, { decor = true })
+		end
+		f:cyl(0, h + 6, 0, r + 1.5, 3, white, M.SmoothPlastic, { decor = true })
+		f:cyl(0, h + 9, 0, r * 0.4, 6, band, M.Neon, { decor = true })
+		return
+	end
+	f:box(0, 0, 0, w + 6, 6, d + 6, white, M.SmoothPlastic, { name = "Building" })
+	f:box(0, 6, 0, w, h, d, white, M.SmoothPlastic, { name = "Building" })
+	f:box(0, 8, -d / 2 - 0.3, w * 0.72, h - 6, 0.6, glass, M.Glass, { decor = true, trans = 0.1, refl = 0.35 })
+	f:box(0, 8, d / 2 + 0.3, w * 0.72, h - 6, 0.6, glass, M.Glass, { decor = true, trans = 0.1, refl = 0.35 })
+	for y = 18, h - 4, 18 do
+		f:box(0, 6 + y, 0, w + 0.8, 0.8, d + 0.8, band, M.Neon, { decor = true, trans = 0.2 })
+	end
+	if rnd() > 0.5 then
+		local r = d / 2
+		f:cyl(w / 2, 6, 0, r, h * 0.8, white, M.SmoothPlastic, { decor = true })
+		f:cyl(w / 2, 6, 0, r + 0.3, h * 0.8 - 2, glass, M.Glass, { decor = true, trans = 0.4 })
+	end
+	f:box(0, h + 6, 0, w * 0.6, 4, d * 0.6, Kit.shade(white, 0.85), M.Metal, { decor = true })
+	if rnd() > 0.6 then
+		f:cyl(-w * 0.2, h + 10, 0, 0.5, 14, Pal.darkMetal, M.Metal, { decor = true })
+		f:ball(-w * 0.2, h + 24.5, 0, 0.9, Pal.ember, M.Neon, { decor = true })
+	end
+end
+
+--- A city plaza: a hex-tiled square with a hologram screen, planters and benches.
+function Props.plaza(b, x: number, z: number, rnd)
+	local f = b:shift(x, 0, z)
+	local tile = hex(0xe3e8f0)
+	for k = 0, 2 do
+		f:box(0, 0, 0, 80, 0.2, 80 / math.sqrt(3), tile, M.Marble, { rot = CFrame.Angles(0, math.rad(k * 60), 0) })
+	end
+	f:cyl(0, 0.2, 0, 24, 0.06, Pal.lumen, M.Neon, { decor = true })
+	local words = { "TOURNAMENT TONIGHT", "SKY ARENA", "FESTA", "NEWS", "TRIALS OPEN", "HALCYON" }
+	if rnd() > 0.45 then
+		f:cyl(0, 0.2, 0, 3, 3, Pal.darkMetal, M.Metal)
+		Props.holo(f, 0, 6, 0, 18, 9, words[1 + math.floor(rnd(0, #words - 0.001))], Pal.lumen, rnd(0, 180))
+	else
+		f:cyl(0, 0.2, 0, 5, 1.6, Pal.stone, M.Marble)
+		for k = 0, 2 do
+			f:piece("Block", CFrame.new(0, 9, 0) * CFrame.Angles(math.rad(k * 60), math.rad(k * 40), 0), Vector3.new(1.2, 14, 1.2), Pal.white, M.SmoothPlastic, { decor = true })
+		end
+		f:ball(0, 9, 0, 2.4, Pal.lumen, M.Neon, { decor = true })
+	end
+	for i = 0, 3 do
+		local a = math.rad(45 + i * 90)
+		local px, pz = math.sin(a) * 30, math.cos(a) * 30
+		f:cyl(px, 0.2, pz, 6, 1.6, Pal.white, M.Marble)
+		f:cyl(px, 1.8, pz, 5.4, 0.2, Pal.grass, M.Grass, { decor = true })
+		Props.tree(f:shift(0, 1.8, 0), px, pz, if i % 2 == 0 then "blossom" else "round", 0.85)
+		Props.bench(f, math.sin(a + 0.6) * 18, math.cos(a + 0.6) * 18, math.deg(a + 0.6) + 180)
+	end
+end
+
+--- A canal across the cell (along local X) with a footbridge in the middle.
+function Props.canal(b, x: number, z: number, yawDeg: number, rnd)
+	local f = b:shift(x, 0, z, yawDeg)
+	f:box(0, 0, 0, 100, 0.12, 22, Pal.water, M.Glass, { trans = 0.15, refl = 0.35, name = "Canal" })
+	for _, sz in { -12, 12 } do
+		f:box(0, 0, sz, 100, 1, 2.4, Pal.white, M.Marble, { decor = true })
+		f:box(0, 1, sz, 100, 0.3, 0.6, Pal.lumen, M.Neon, { decor = true })
+	end
+	local bx = rnd(-20, 20)
+	f:box(bx, 1.4, 0, 9, 0.8, 28, Pal.white, M.Marble, { name = "Bridge" })
+	f:wedge(bx, 0, -13, 9, 1.4, 3, 180, Pal.white, M.Marble)
+	f:wedge(bx, 0, 13, 9, 1.4, 3, 0, Pal.white, M.Marble)
+	for _, sx in { -4.4, 4.4 } do
+		f:box(bx + sx, 2.2, 0, 0.4, 3, 28, Pal.glass, M.Glass, { trans = 0.5, decor = true })
+	end
+	for _, side in { -1, 1 } do
+		Props.tree(f, bx + 32 * side, 22 * side, "blossom", 1.0)
+		Props.lamp(f:shift(-40 * side, 0, 18 * side, side * 90), 0, 0, Pal.lumen, false, 12)
 	end
 end
 
