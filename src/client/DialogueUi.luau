@@ -7,7 +7,8 @@ local Players = game:GetService("Players")
 
 local DialogueUi = {}
 
-local gui, frame, nameLabel, titleLabel, textLabel, hint, accentBar
+local gui, frame, nameLabel, titleLabel, textLabel, hint, accentBar, choices, challengeButton, leaveButton
+local current = nil
 local queue: { string } = {}
 local index = 0
 local typing = false
@@ -24,6 +25,10 @@ local function setMovement(enabled: boolean)
 end
 
 local function close()
+	choices.Visible = false
+	if DialogueUi.onOpenChanged then
+		DialogueUi.onOpenChanged(false)
+	end
 	ContextActionService:UnbindAction(ADVANCE)
 	TweenService:Create(frame, TweenInfo.new(0.18), { Position = UDim2.new(0.5, 0, 1.3, 0) }):Play()
 	task.delay(0.2, function()
@@ -56,13 +61,28 @@ local function advance()
 		textLabel.Text = fullText
 		return
 	end
+	if choices.Visible then
+		return -- waiting for Challenge or Leave
+	end
 	index += 1
 	if index > #queue then
+		if current and current.challenge then
+			-- offer the duel
+			index = #queue
+			choices.Visible = true
+			hint.Text = ""
+			ContextActionService:UnbindAction(ADVANCE) -- let the buttons take clicks, taps and controller A
+			local GuiService = game:GetService("GuiService")
+			if game:GetService("UserInputService"):GetLastInputType().Name:find("Gamepad") then
+				GuiService.SelectedObject = challengeButton
+			end
+			return
+		end
 		close()
 		return
 	end
 	typeLine(queue[index])
-	hint.Text = if index == #queue then "CLOSE ▸" else "NEXT ▸"
+	hint.Text = if index == #queue and not (current and current.challenge) then "CLOSE ▸" else "NEXT ▸"
 end
 
 function DialogueUi.init(playerGui: PlayerGui)
@@ -143,10 +163,53 @@ function DialogueUi.init(playerGui: PlayerGui)
 	hint.Parent = frame
 
 	frame.Activated:Connect(advance) -- mouse click, touch tap, or controller select
+
+	choices = Instance.new("Frame")
+	choices.BackgroundTransparency = 1
+	choices.AnchorPoint = Vector2.new(1, 1)
+	choices.Position = UDim2.new(1, -16, 1, -10)
+	choices.Size = UDim2.new(0, 300, 0, 44)
+	choices.Visible = false
+	choices.Parent = frame
+	local function choice(text: string, x: number, color: Color3, onPress)
+		local b = Instance.new("TextButton")
+		b.Size = UDim2.new(0.48, 0, 1, 0)
+		b.Position = UDim2.new(x, 0, 0, 0)
+		b.BackgroundColor3 = color
+		b.Text = text
+		b.Font = Enum.Font.GothamBlack
+		b.TextScaled = true
+		b.TextColor3 = Color3.fromRGB(10, 13, 26)
+		Instance.new("UICorner").Parent = b
+		local pad = Instance.new("UIPadding")
+		pad.PaddingTop = UDim.new(0.2, 0)
+		pad.PaddingBottom = UDim.new(0.2, 0)
+		pad.Parent = b
+		b.Activated:Connect(onPress)
+		b.Parent = choices
+		return b
+	end
+	challengeButton = choice("CHALLENGE", 0, Color3.fromRGB(255, 201, 74), function()
+		local id = current and current.id
+		close()
+		if id and DialogueUi.onChallenge then
+			DialogueUi.onChallenge(id)
+		end
+	end)
+	leaveButton = choice("LEAVE", 0.52, Color3.fromRGB(150, 160, 190), function()
+		close()
+	end)
+	challengeButton.NextSelectionRight = leaveButton
+	leaveButton.NextSelectionLeft = challengeButton
 	gui.Parent = playerGui
 end
 
 function DialogueUi.show(data)
+	current = data
+	choices.Visible = false
+	if DialogueUi.onOpenChanged then
+		DialogueUi.onOpenChanged(true)
+	end
 	queue = data.lines or {}
 	index = 0
 	nameLabel.Text = data.name or ""

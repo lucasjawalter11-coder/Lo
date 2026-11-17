@@ -7,6 +7,9 @@ local Shared = ReplicatedStorage:WaitForChild("HalcyonShared")
 local Config = require(Shared:WaitForChild("Config"))
 local DialogueUi = require(script:WaitForChild("DialogueUi"))
 local Hub = require(script:WaitForChild("Hub"))
+local Fx = require(script:WaitForChild("Fx"))
+local Animator = require(script:WaitForChild("Animator"))
+local CombatClient = require(script:WaitForChild("CombatClient"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -16,6 +19,15 @@ DialogueUi.init(playerGui)
 remotes:WaitForChild("Dialogue").OnClientEvent:Connect(function(data)
 	DialogueUi.show(data)
 end)
+
+Fx.init()
+Animator.init(Fx)
+CombatClient.init(playerGui, { Animator = Animator, Fx = Fx })
+Hub.onOpenChanged = CombatClient.setMenuOpen
+DialogueUi.onOpenChanged = CombatClient.setMenuOpen
+DialogueUi.onChallenge = function(id)
+	remotes:WaitForChild("Dialogue"):FireServer("challenge", id)
+end
 
 Hub.init(playerGui)
 

@@ -535,6 +535,9 @@ end
 
 show = function(name: string)
 	state.screen = name
+	if Hub.onOpenChanged then
+		Hub.onOpenChanged(name ~= "closed")
+	end
 	for key, s in screens do
 		s.frame.Visible = key == name
 	end
