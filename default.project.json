@@ -43,7 +43,11 @@
     "Workspace": {
       "$className": "Workspace",
       "$properties": {
-        "FallenPartsDestroyHeight": -900
+        "FallenPartsDestroyHeight": -900,
+        "StreamingEnabled": true,
+        "StreamingIntegrityMode": "PauseOutsideLoadedArea",
+        "StreamingMinRadius": 128,
+        "StreamingTargetRadius": 768
       }
     },
     "ServerStorage": {
@@ -51,6 +55,12 @@
     },
     "SoundService": {
       "$className": "SoundService"
+    },
+    "Players": {
+      "$className": "Players",
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
     }
   }
 }

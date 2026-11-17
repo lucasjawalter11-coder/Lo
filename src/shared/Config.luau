@@ -22,6 +22,8 @@ Config.AcademyOrder = { "northwind", "solcrest", "arcline", "ironreach" }
 Config.Academies = {
 	northwind = {
 		id = "northwind",
+		angle = 135, -- direction of the campus from the map centre (0 = south, 90 = east)
+		tower = "Twin ice-glass spires rising from the snow",
 		name = "Northwind Academy",
 		short = "Northwind",
 		motto = "Still water cuts deepest.",
@@ -32,6 +34,8 @@ Config.Academies = {
 	},
 	solcrest = {
 		id = "solcrest",
+		angle = 45, -- direction of the campus from the map centre (0 = south, 90 = east)
+		tower = "A stepped sun tower crowned with a golden disc",
 		name = "Solcrest Institute",
 		short = "Solcrest",
 		motto = "Rise before the sun does.",
@@ -42,6 +46,8 @@ Config.Academies = {
 	},
 	arcline = {
 		id = "arcline",
+		angle = 315, -- direction of the campus from the map centre (0 = south, 90 = east)
+		tower = "A round research tower wrapped in glowing rings",
 		name = "Arcline Polytechnic",
 		short = "Arcline",
 		motto = "Measure twice. Fire once.",
@@ -52,6 +58,8 @@ Config.Academies = {
 	},
 	ironreach = {
 		id = "ironreach",
+		angle = 225, -- direction of the campus from the map centre (0 = south, 90 = east)
+		tower = "A fortress tower with roaring forge chimneys",
 		name = "Ironreach Citadel",
 		short = "Ironreach",
 		motto = "Stand. Then stand again.",
@@ -153,9 +161,17 @@ Config.Sounds = {
 	Music = { id = "", volume = 0.35 }, -- put a music asset id here to add a soundtrack
 }
 
+-- Map layout shared by the world builder and the client's menu camera
+Config.Map = {
+	CampusGate = 600, -- distance from the centre to each school's gate
+	TowerDepth = 300, -- how far inside the gate each school tower stands
+	Spire = Vector3.new(0, 60, 0),
+}
+
 -- Tags and names used to find things in the world
 Config.WorldName = "HalcyonWorld"
 Config.ArenaTemplateName = "HalcyonArenaTemplate"
 Config.RemotesName = "HalcyonRemotes"
+Config.PreviewsName = "HalcyonPreviews"
 
 return Config

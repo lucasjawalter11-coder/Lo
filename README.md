@@ -13,12 +13,24 @@ The world is already inside the place file, so nothing has to be imported by han
 
 ## What is in it so far
 
-- **One big landscape**, 3,600 × 3,600 studs, ringed by rolling hills and mountains. Nothing floats.
+- **The hub when you join**: the camera circles the central spire while you choose
+  **Start Game** or **Customize**. First-time players pick a school on a screen that flies the camera to
+  each school's tower; then they spawn inside that school's gate. In game, the **≡ MENU** button at the top
+  (or **M** / D-pad up) brings the hub back, where you can resume, customize, or change school.
+- **Customize**: uniform style (long coat, pleated uniform, hoodie, light armour), hair style (8),
+  hair colour (12), eye colour (8) and skin tone (8), with a spinning live preview. Your school sets the
+  uniform colours. Or switch on "Wear my Roblox avatar" to keep your own avatar with a school sash.
+  Looks and school are saved (turn on *Game Settings → Security → Enable Studio Access to API Services*
+  to save while testing in Studio).
+
+- **One big landscape**, 2,700 × 2,700 studs, ringed by rolling hills and mountains. Nothing floats.
+  The land between the districts is filled with neighbourhoods, shop streets, woods, parks, fields and
+  sports courts, with a few open meadows.
 - **The central hub**: the Register plaza and spire, the arrival station where players spawn, the
   Training Hall, the Crown Arena gate, the market street, gardens and a lake.
-- **Four school campuses**, each on its own walled land about 820 studs from the centre, joined to the hub
+- **Four school campuses**, each on its own walled land about 600 studs from the centre, joined to the hub
   by its own road. Every campus has a gate with the school's name, two dormitories, its own duel court and
-  rank board, a sports lawn, and a different ground and tower:
+  rank board, classroom wings, a sports lawn, and a different ground and tower:
   - Northwind Academy: twin ice-glass spires on snow
   - Solcrest Institute: a stepped sun tower on sandstone
   - Arcline Polytechnic: a round research tower wrapped in glowing rings
@@ -29,16 +41,15 @@ The world is already inside the place file, so nothing has to be imported by han
   press **E** (keyboard), **X** (controller) or tap the prompt (mobile) to talk.
 - A duel arena template in ServerStorage (not used yet), plus golden-hour lighting, bloom and clouds.
 
-Not built yet: school selection and character customisation on join, per-school rank leaderboards,
-combat and weapons, and the shop menu.
+Not built yet: per-school rank leaderboards, combat and weapons, and the shop menu.
 
 ## Working on the code
 
 The game is a [Rojo](https://rojo.space) project. Source lives in `src/`:
 
 - `src/server/` builds the world (`Campus`, `Npcs`, `Arena`, `Atmos`) and runs the server
-- `src/client/` is the player's side (the dialogue box so far)
-- `src/shared/` holds config and the NPC roster
+- `src/client/` is the player's side: the hub (`Hub`) and the dialogue box
+- `src/shared/` holds config, the NPC roster, customisation options (`Looks`) and the dresser (`Appearance`)
 
 To rebuild the place file after changing code (needs `rojo` and `lune`):
 

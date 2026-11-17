@@ -21,6 +21,28 @@ local function patchInstances()
 		return
 	end
 	patched = true
+	local function pivotOf(model)
+		if model.PrimaryPart then
+			return model.PrimaryPart.CFrame
+		end
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				return d.CFrame
+			end
+		end
+		return roblox.CFrame.new()
+	end
+	roblox.implementMethod("Model", "GetPivot", function(self)
+		return pivotOf(self)
+	end)
+	roblox.implementMethod("Model", "PivotTo", function(self, target)
+		local delta = target * pivotOf(self):Inverse()
+		for _, d in self:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.CFrame = delta * d.CFrame
+			end
+		end
+	end)
 	roblox.implementMethod("Instance", "WaitForChild", function(self, name: string)
 		local child = self:FindFirstChild(name)
 		assert(child, "WaitForChild: " .. self:GetFullName() .. " has no child named " .. tostring(name))

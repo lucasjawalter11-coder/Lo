@@ -28,7 +28,7 @@ local Campus = {}
 
 Campus.IslandRadius = 520 -- radius of the central hub area
 Campus.Edge = 1350 -- the walkable land runs from -Edge to +Edge on X and Z
-Campus.CampusGate = 600 -- distance from the centre to each school's gate
+Campus.CampusGate = Config.Map.CampusGate
 Campus.PlazaRadius = 124
 
 -- Where each default seat-holder stands on the plaza ring (degrees). Rookies stand near the Skydock,
@@ -607,6 +607,7 @@ local function build(world: Instance)
 		Props.fountain(p, -100, 200, 10, info.accent)
 		Props.planter(p, 100, 200, 16, "blossom")
 		anchor("Return_campus_" .. info.id, p, 0, 0.6, 20, 0)
+		anchor("Spawn_" .. info.id, p, 0, 3.5, 34, 180)
 	end
 
 	local function pavilionBase(academyId: string, a: number)
@@ -636,7 +637,7 @@ local function build(world: Instance)
 
 		-- The school tower. Each academy is a high-rise campus with its own silhouette.
 		local body = Kit.mix(info.uniform.dark, Pal.night, 0.3)
-		local tw = p:shift(0, 0, 300)
+		local tw = p:shift(0, 0, Config.Map.TowerDepth)
 		local topY
 		if academyId == "northwind" then
 			-- twin ice-glass spires joined by sky bridges
