@@ -81,7 +81,10 @@ local function build(world: Instance)
 	Kit.glow(engine, 60, 3, Pal.lumen)
 
 	-- Rim: a kerb, a glass rail, a glowing handrail and an invisible wall so nobody walks off the edge.
-	island:ring(0, 0, 0, 512, 72, function(f)
+	island:ring(0, 0, 0, 512, 72, function(f, i)
+		if i == 54 then
+			return -- gap for the bridge to Halcyon City
+		end
 		f:box(0, 0, 0, 45.4, 2.4, 5, Pal.stoneDark, M.Marble)
 		f:box(0, 2.4, 0.6, 45, 4.2, 0.3, Pal.glass, M.Glass, { trans = 0.6, shadow = false })
 		f:box(0, 6.6, 0.6, 45.2, 0.35, 0.6, Pal.lumen, M.Neon, { decor = true })
@@ -486,25 +489,88 @@ local function build(world: Instance)
 		for _, sx in { -44, 44 } do
 			Props.lamp(p:shift(sx, 0, 90, if sx > 0 then 90 else -90), 0, 0, info.accent, true)
 		end
-		-- The school tower: every academy is a skyscraper campus rising behind its hall.
+		-- District ground: every school stands on its own kind of land.
+		local groundLook = {
+			northwind = { hex(0xeef4fb), M.Snow },
+			solcrest = { hex(0xe3c58a), M.Sandstone },
+			arcline = { hex(0x2a2440), M.SmoothPlastic },
+			ironreach = { hex(0x3b3436), M.Basalt },
+		}
+		local gl = groundLook[academyId]
+		p:cyl(0, -0.25, 96, 104, 0.3, gl[1], gl[2], { name = "DistrictGround" })
+		p:cyl(0, -0.3, 96, 106, 0.3, info.accent, M.Neon, { decor = true })
+
+		-- The school tower. Each academy is a high-rise campus with its own silhouette.
 		local body = Kit.mix(info.uniform.dark, Pal.night, 0.3)
 		local tw = p:shift(0, 0, 152)
-		tw:box(0, 0, 0, 64, 16, 44, Pal.slate, M.Marble, { name = "TowerPodium" })
-		tw:box(0, 16, 0, 46, 250, 34, body, M.SmoothPlastic, { name = "SchoolTower", refl = 0.15 })
-		tw:box(0, 266, 0, 34, 80, 26, body, M.SmoothPlastic, { refl = 0.15 })
-		tw:box(0, 346, 0, 20, 44, 16, body, M.SmoothPlastic)
-		tw:cyl(0, 390, 0, 1.6, 50, info.accent, M.Neon, { decor = true })
-		local beacon = tw:ball(0, 442, 0, 4, info.accent, M.Neon, { decor = true })
+		local topY
+		if academyId == "northwind" then
+			-- twin ice-glass spires joined by sky bridges
+			local ice = hex(0xcfeeff)
+			tw:box(0, 0, 0, 70, 14, 44, Pal.white, M.Marble, { name = "TowerPodium" })
+			for _, sx in { -16, 16 } do
+				tw:box(sx, 14, 0, 22, 240, 22, ice, M.Glass, { trans = 0.15, refl = 0.3, name = "SchoolTower" })
+				tw:box(sx, 254, 0, 16, 90, 16, ice, M.Glass, { trans = 0.15, refl = 0.3 })
+				tw:wedge(sx, 344, -4, 16, 40, 8, 0, Pal.white, M.Marble, { decor = true })
+				tw:wedge(sx, 344, 4, 16, 40, 8, 180, Pal.white, M.Marble, { decor = true })
+				for i = 0, 10 do
+					tw:box(sx, 30 + i * 21, 0, 22.6, 1.4, 22.6, info.accent, M.Neon, { decor = true })
+				end
+			end
+			for _, h in { 90, 170, 250 } do
+				tw:box(0, h, 0, 12, 5, 8, ice, M.Glass, { trans = 0.2 })
+			end
+			topY = 384
+		elseif academyId == "solcrest" then
+			-- stepped sun tower with a great disc at the crown
+			tw:box(0, 0, 0, 76, 16, 52, Pal.stoneWarm, M.Sandstone, { name = "TowerPodium" })
+			local w, y = 54, 16
+			for i = 1, 5 do
+				tw:box(0, y, 0, w, 62, w * 0.72, if i % 2 == 1 then hex(0x24356a) else Pal.stoneWarm, M.SmoothPlastic, { name = "SchoolTower", refl = 0.12 })
+				tw:box(0, y + 62, 0, w + 3, 2, w * 0.72 + 3, info.accent, M.Neon, { decor = true })
+				y += 64
+				w -= 8
+			end
+			local disc = tw:rod("z", 0, y + 26, 0, 24, 3, info.accent, M.Neon, { decor = true, name = "SunCrown" })
+			Kit.glow(disc, 60, 3, info.accent)
+			for i = 0, 11 do
+				tw:piece("Block", CFrame.new(0, y + 26, 0) * CFrame.Angles(0, 0, math.rad(i * 30)) * CFrame.new(0, 32, 0), Vector3.new(2, 12, 2), info.accent, M.Neon, { decor = true })
+			end
+			topY = y + 52
+		elseif academyId == "arcline" then
+			-- round research tower wrapped in floating rings
+			tw:cyl(0, 0, 0, 34, 14, Pal.deck, M.Metal, { name = "TowerPodium" })
+			tw:cyl(0, 14, 0, 20, 260, hex(0x2d2748), M.SmoothPlastic, { name = "SchoolTower", refl = 0.2 })
+			tw:cyl(0, 274, 0, 14, 70, hex(0x6a4fa3), M.Glass, { trans = 0.2, refl = 0.3 })
+			tw:ball(0, 356, 0, 16, info.accent, M.Neon, { decor = true, trans = 0.2 })
+			for i = 0, 5 do
+				tw:cyl(0, 50 + i * 44, 0, 27 - i * 1.5, 2.4, info.accent, M.Neon, { decor = true })
+				tw:cyl(0, 62 + i * 44, 0, 20.4, 6, hex(0xfff0c8), M.Neon, { decor = true, trans = 0.3 })
+			end
+			topY = 372
+		else
+			-- fortress high-rise with buttress fins and forge stacks
+			tw:box(0, 0, 0, 78, 20, 56, hex(0x23262e), M.Concrete, { name = "TowerPodium" })
+			tw:box(0, 20, 0, 50, 230, 40, hex(0x34363f), M.Concrete, { name = "SchoolTower" })
+			tw:box(0, 250, 0, 58, 12, 48, hex(0x23262e), M.Metal)
+			tw:box(0, 262, 0, 38, 70, 30, hex(0x34363f), M.Concrete)
+			for _, sx in { -28, 28 } do
+				tw:wedge(sx, 20, 0, 40, 150, 12, if sx > 0 then -90 else 90, hex(0x23262e), M.Concrete, { decor = true })
+				tw:cyl(sx * 0.5, 332, 0, 5, 44, hex(0x4a3a36), M.Brick, { decor = true })
+				local ember = tw:cyl(sx * 0.5, 376, 0, 4.4, 1.2, info.accent, M.Neon, { decor = true })
+				Kit.glow(ember, 60, 3, info.accent)
+			end
+			for i = 0, 8 do
+				tw:box(0, 40 + i * 24, -20.2, 30, 5, 0.6, info.accent, M.Neon, { decor = true })
+			end
+			topY = 378
+		end
+		tw:cyl(0, topY, 0, 1.6, 44, info.accent, M.Neon, { decor = true })
+		local beacon = tw:ball(0, topY + 46, 0, 4, info.accent, M.Neon, { decor = true })
 		Kit.glow(beacon, 60, 3, info.accent)
-		for i = 0, 11 do
-			tw:box(0, 30 + i * 20, 0, 46.8, 2.2, 34.8, if i % 3 == 0 then info.accent else hex(0xfff0c8), M.Neon, { decor = true, trans = if i % 3 == 0 then 0 else 0.25 })
-		end
-		for _, sx in { -23.6, 23.6 } do
-			tw:box(sx, 16, -17.4, 1.4, 330, 1.4, info.accent, M.Neon, { decor = true })
-		end
-		local crest = tw:box(0, 228, -17.4, 34, 30, 0.6, Pal.night, M.Glass, { decor = true, name = "TowerCrest" })
-		Kit.label(crest, Enum.NormalId.Front, string.upper(info.short), { color = info.accent })
-		tw:box(0, 266, 0, 52, 2, 40, info.accent, M.Neon, { decor = true })
+		local crest = tw:box(0, 20, -28.6, 40, 12, 0.6, Pal.night, M.Glass, { decor = true, name = "TowerCrest" })
+		Kit.label(crest, Enum.NormalId.Front, string.upper(info.name), { color = info.accent })
+		anchor("Npc_guide_" .. academyId, p, 16, 0.2, 20, 0)
 		return p, info
 	end
 
@@ -831,13 +897,139 @@ local function build(world: Instance)
 	end
 
 	-- =========================================================================================
+	-- Halcyon City (far west, across the Skybridge)
+	-- =========================================================================================
+	do
+		local c = spoke("HalcyonCity", 270, 505) -- local +Z runs away from the island
+		local asphalt, kerb = hex(0x20242f), hex(0x8f97a8)
+		local rndc = Props.rng(31337)
+		-- the bridge
+		c:box(0, -3, 110, 44, 3, 230, Pal.slate, M.Concrete, { name = "Skybridge" })
+		c:box(0, 0, 110, 4, 0.08, 226, Pal.lumen, M.Neon, { decor = true })
+		for _, sx in { -22, 22 } do
+			c:box(sx, 0, 110, 1.2, 5, 230, Pal.glass, M.Glass, { trans = 0.55, shadow = false })
+			c:box(sx, 5, 110, 1.4, 0.4, 230, Pal.lumen, M.Neon, { decor = true })
+			c:box(sx * 1.08, 0, 110, 1.4, 90, 230, Pal.white, M.SmoothPlastic, { trans = 1, name = "Barrier", shadow = false })
+			for j = 0, 3 do
+				c:box(sx, -3, 30 + j * 55, 3, 70, 3, Pal.darkMetal, M.Metal, { decor = true })
+				c:bar(Vector3.new(sx, 67, 30 + j * 55), Vector3.new(sx, 4, 57 + j * 55), 0.5, Pal.metal, M.Metal, { decor = true })
+				c:bar(Vector3.new(sx, 67, 30 + j * 55), Vector3.new(sx, 4, 3 + j * 55), 0.5, Pal.metal, M.Metal, { decor = true })
+			end
+		end
+		local gateBeam = c:box(0, 34, 6, 50, 6, 4, Pal.night, M.Metal, { name = "CityGate" })
+		Kit.label(gateBeam, Enum.NormalId.Front, "HALCYON CITY", { color = hex(0xff4fd8) })
+		Kit.label(gateBeam, Enum.NormalId.Back, "ACADEMY ISLAND", { color = Pal.lumen })
+		for _, sx in { -23, 23 } do
+			c:box(sx, 0, 6, 4, 34, 4, Pal.darkMetal, M.Metal)
+		end
+		-- the city platform: 560 x 560, centred 505 studs past the bridge start
+		local city = c:shift(0, 0, 505)
+		local H = 280
+		city:box(0, -30, 0, 560, 30, 560, asphalt, M.Asphalt, { name = "CityGround" })
+		city:box(0, -90, 0, 420, 60, 420, Pal.rockDark, M.Slate, { decor = true })
+		city:box(0, -32, 0, 566, 2.4, 566, hex(0xff4fd8), M.Neon, { decor = true })
+		for _, e in { { 0, H + 1, 564, 2 }, { 0, -(H + 1), 564, 2 }, { H + 1, 0, 2, 564 }, { -(H + 1), 0, 2, 564 } } do
+			if not (e[2] < 0 and e[1] == 0) then
+				city:box(e[1], 0, e[2], e[3], 90, e[4], Pal.white, M.SmoothPlastic, { trans = 1, name = "Barrier", shadow = false })
+			end
+			city:box(e[1], 0, e[2], e[3], 4, e[4], kerb, M.Concrete, { decor = true })
+		end
+		-- the island-side edge has a gap for the bridge
+		city:box(-151, 0, -(H + 1), 258, 90, 2, Pal.white, M.SmoothPlastic, { trans = 1, name = "Barrier", shadow = false })
+		city:box(151, 0, -(H + 1), 258, 90, 2, Pal.white, M.SmoothPlastic, { trans = 1, name = "Barrier", shadow = false })
+		-- streets: a 4 x 4 grid of blocks, 100 studs each with 32-stud roads
+		for i = -2, 2 do
+			local o = i * 132
+			city:box(o, 0, 0, 3, 0.06, 556, hex(0xffe9a0), M.Neon, { decor = true, trans = 0.35 })
+			city:box(0, 0, o, 556, 0.06, 3, hex(0xffe9a0), M.Neon, { decor = true, trans = 0.35 })
+		end
+		local signs = { "RAMEN", "ARCADE", "LUMEN GEAR", "CAFE NOVA", "KARAOKE", "BOOKS", "SKY HOTEL", "CINEMA", "TEA HOUSE", "DUEL WEAR", "BAKERY", "RECORDS" }
+		local neon = { hex(0xff4fd8), hex(0x39c9ff), hex(0xffc94a), hex(0x7dff7a), hex(0xb06bff), hex(0xff7a2a) }
+		local n = 0
+		for bx = 0, 3 do
+			for bz = 0, 3 do
+				local cx, cz = -198 + bx * 132, -198 + bz * 132
+				local centre = (bx == 1 or bx == 2) and (bz == 1 or bz == 2)
+				local blk = city:shift(cx, 0, cz)
+				blk:box(0, 0, 0, 100, 0.8, 100, kerb, M.Pavement, { name = "Sidewalk" })
+				if not centre then
+					for q = 0, 3 do
+						n += 1
+						local qx, qz = (if q % 2 == 0 then -24 else 24), (if q < 2 then -24 else 24)
+						local w, d = rndc(34, 44), rndc(34, 44)
+						local h = rndc(50, 240)
+						local tint = Kit.mix(hex(0x1c2238), hex(0x4a5270), rndc(0, 1))
+						local accent = neon[1 + n % #neon]
+						local tower = blk:box(qx, 0.8, qz, w, h, d, tint, M.SmoothPlastic, { name = "Building", refl = 0.12 })
+						for f2 = 1, math.floor(h / 22) do
+							blk:box(qx, 0.8 + f2 * 22 - 8, qz, w + 0.5, 5, d + 0.5, if f2 % 3 == 0 then accent else hex(0xfff0c8), M.Neon, { decor = true, trans = 0.3 })
+						end
+						blk:box(qx, h + 0.8, qz, w * 0.5, 6, d * 0.5, Pal.darkMetal, M.Metal, { decor = true })
+						if n % 2 == 0 then
+							-- shop front and sign facing the nearest road
+							local face = if qz < 0 then Enum.NormalId.Front else Enum.NormalId.Back
+							local sz2 = if qz < 0 then qz - d / 2 - 0.4 else qz + d / 2 + 0.4
+							local board = blk:box(qx, 13, sz2, w * 0.8, 6, 0.6, Pal.night, M.Glass, { decor = true, name = "ShopSign" })
+							Kit.label(board, face, signs[1 + n % #signs], { color = accent })
+							blk:box(qx, 1, sz2, w * 0.8, 11, 0.4, accent, M.Glass, { decor = true, trans = 0.55 })
+							local awn = blk:box(qx, 12.2, sz2 + (if qz < 0 then -2 else 2), w * 0.8, 0.5, 4.4, accent, M.Fabric, { decor = true })
+							Kit.glow(awn, 26, 1, accent)
+						end
+						if n % 5 == 0 then
+							local bb = blk:box(qx, h + 6.8, qz, w * 0.9, 18, 1, Pal.night, M.Glass, { decor = true, name = "Billboard" })
+							Kit.label(bb, Enum.NormalId.Front, "HALCYON CLASH", { color = accent })
+							Kit.label(bb, Enum.NormalId.Back, "CROWN TRIALS", { color = accent })
+						end
+						local _ = tower
+					end
+				end
+				for _, cnr in { { -46, -46 }, { 46, -46 }, { -46, 46 }, { 46, 46 } } do
+					Props.lamp(blk:shift(cnr[1], 0.8, cnr[2], if cnr[1] > 0 then 90 else -90), 0, 0, neon[1 + (bx + bz) % #neon], cnr[1] > 0 and cnr[2] > 0, 13)
+				end
+			end
+		end
+		-- Central Square: four blocks merged around a fountain and a clock tower
+		city:cyl(0, 0.8, 0, 62, 0.2, Pal.stoneWarm, M.Marble, { name = "CitySquare" })
+		city:cyl(0, 0.8, 0, 63.5, 0.1, hex(0xff4fd8), M.Neon, { decor = true })
+		Props.fountain(city:shift(0, 1, 0), 0, 44, 13, hex(0x39c9ff))
+		Props.fountain(city:shift(0, 1, 0), 0, -44, 13, hex(0xff4fd8))
+		city:box(0, 1, 0, 16, 120, 16, Pal.stoneWarm, M.Marble, { name = "ClockTower" })
+		city:box(0, 121, 0, 20, 4, 20, Pal.gold, M.Metal, { decor = true })
+		local clock = city:box(0, 96, 0, 16.6, 16, 16.6, Pal.night, M.Glass, { decor = true, name = "ClockFace" })
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right } do
+			Kit.label(clock, face, "XII", { color = Pal.gold })
+		end
+		city:wedge(0, 125, -5, 20, 22, 10, 0, hex(0x8a2f3a), M.Slate, { decor = true })
+		city:wedge(0, 125, 5, 20, 22, 10, 180, hex(0x8a2f3a), M.Slate, { decor = true })
+		for i = 0, 7 do
+			local a = math.rad(22.5 + i * 45)
+			Props.tree(city:shift(0, 1, 0), math.sin(a) * 52, math.cos(a) * 52, if i % 2 == 0 then "blossom" else "round", 1.1)
+			Props.bench(city:shift(0, 1, 0), math.sin(a) * 36, math.cos(a) * 36, math.deg(a))
+		end
+		-- parked hover cars
+		for i = 1, 10 do
+			local road = (math.floor(rndc(0, 4.99)) - 2) * 132
+			local along = rndc(-250, 250)
+			local col = neon[1 + i % #neon]
+			local car = if i % 2 == 0 then city:shift(road + 9, 1.6, along, 0) else city:shift(along, 1.6, road + 9, 90)
+			car:box(0, 0, 0, 7, 2.2, 15, col, M.SmoothPlastic, { refl = 0.3 })
+			car:box(0, 2.2, -0.5, 6.2, 2, 8, Pal.night, M.Glass, { decor = true, trans = 0.2 })
+			car:box(0, -0.5, 0, 6, 0.4, 13, col, M.Neon, { decor = true })
+		end
+		anchor("Npc_city_vendor", city, 30, 1, 30, 135)
+		anchor("Npc_city_guide", city, -10, 1, -70, 180)
+		anchor("Npc_city_kid", city, -34, 1, 26, -120)
+		anchor("Npc_bridge_guard", c, 14, 0.2, 14, 180)
+	end
+
+	-- =========================================================================================
 	-- The sky around the island
 	-- =========================================================================================
 	local sky = root:group("Skyline")
 	local islets = {
-		{ 760, -40, 150, 70, "falls" }, { 690, 60, -420, 56, "pagoda" }, { -820, 20, 260, 80, "falls" }, { -700, 90, -360, 52, "beacon" },
+		{ 760, -40, 150, 70, "falls" }, { 690, 60, -420, 56, "pagoda" }, { -560, 20, 700, 80, "falls" }, { -700, 90, -360, 52, "beacon" },
 		{ 240, 110, 860, 60, "pagoda" }, { -260, -70, 900, 74, nil }, { 320, 40, -900, 66, "beacon" }, { -380, 130, -880, 48, nil },
-		{ 1020, 150, -120, 44, nil }, { -1040, -30, -40, 58, "beacon" },
+		{ 1020, 150, -120, 44, nil }, { -1000, -30, -620, 58, "beacon" },
 	}
 	for i, it in islets do
 		Props.islet(sky, it[1], it[2], it[3], it[4], 300 + i * 13, it[5])

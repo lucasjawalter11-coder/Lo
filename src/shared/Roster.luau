@@ -194,8 +194,79 @@ Roster.Crowd = {
 	{ id = "s10", academy = "northwind", look = { height = 1.05, skin = hex(0x6e4630), hair = hex(0xd9e2f2), hairTip = hex(0x7fcfff), hairStyle = "slick", eye = hex(0x39c9ff), outfit = "coat", accent = hex(0x39c9ff), glasses = true } },
 }
 
+-- People you can just talk to: a guide outside every school tower and the folk of Halcyon City.
+Roster.Talkers = {
+	{
+		id = "guide_northwind", name = "Aoi Frost", epithet = "Northwind Prefect", academy = "northwind",
+		look = { fem = true, height = 0.97, skin = hex(0xf2d2bc), hair = hex(0xe6eefa), hairTip = hex(0x7fcfff), hairStyle = "long", eye = hex(0x39c9ff), outfit = "coat", accent = hex(0x39c9ff) },
+		lines = {
+			"Welcome to Northwind Academy. The twin spires behind me are our dormitories and the training decks.",
+			"Northwind duelists favour the saber. Patience first, then one clean line.",
+			"Our Register is the hardest to climb. Everyone here is quiet, and everyone here is dangerous.",
+		},
+	},
+	{
+		id = "guide_solcrest", name = "Rafael Sol", epithet = "Solcrest Prefect", academy = "solcrest",
+		look = { height = 1.04, skin = hex(0xc08a62), hair = hex(0x3a2418), hairTip = hex(0xffb62e), hairStyle = "spiky", eye = hex(0xffb62e), outfit = "coat", accent = hex(0xffb62e) },
+		lines = {
+			"Morning! Or it is morning somewhere. Solcrest students are always up before the sun.",
+			"Five terraces, one for each year, and the Sun Crown on top. Only Seat I eats lunch up there.",
+			"Pick up a lance and keep your rival at the tip of it. That is the Solcrest way.",
+		},
+	},
+	{
+		id = "guide_arcline", name = "Pip Calloway", epithet = "Arcline Lab Assistant", academy = "arcline",
+		look = { fem = true, height = 0.9, skin = hex(0xe9c6ab), hair = hex(0x8c5bff), hairTip = hex(0xe14bff), hairStyle = "twin", eye = hex(0xb6fff3), outfit = "hoodie", accent = hex(0xe14bff), glasses = true },
+		lines = {
+			"Careful near the rings, they hum when the reactor is warm. Which is always.",
+			"Every Arcline weapon is built in-house. The Orbit Discs started as a cooling-fan accident!",
+			"Range, angles and timing. If you are close enough to be hit, you have already made a mistake.",
+		},
+	},
+	{
+		id = "guide_ironreach", name = "Bruno Kessler", epithet = "Ironreach Forgehand", academy = "ironreach",
+		look = { height = 1.12, bulk = 1.2, skin = hex(0x9a6844), hair = hex(0x1a1a1a), hairTip = hex(0xff7a2a), hairStyle = "slick", eye = hex(0xff9d3a), outfit = "armor", accent = hex(0xff5a2a), stern = true },
+		lines = {
+			"The Citadel keeps its forges running day and night. You get used to the heat.",
+			"Ironreach does not dodge. We plant our feet and swing the maul harder than you.",
+			"Want our respect? Get knocked down and stand back up. Then do it again.",
+		},
+	},
+	{
+		id = "city_vendor", name = "Mama Ito", epithet = "Ramen Stand", academy = "city",
+		look = { fem = true, height = 0.92, skin = hex(0xf0cfb4), hair = hex(0x6e6e78), hairTip = hex(0xb0b0bb), hairStyle = "bun", eye = hex(0x5b4636), outfit = "staff", accent = hex(0xff7a2a) },
+		lines = {
+			"Welcome, welcome! Sit down, you look like you lost a duel.",
+			"Every Crownbearer in twenty years has eaten at my counter. Not one of them paid on time.",
+		},
+	},
+	{
+		id = "city_guide", name = "Officer Danvers", epithet = "City Patrol", academy = "city",
+		look = { height = 1.05, skin = hex(0x7a4f36), hair = hex(0x1a1414), hairTip = hex(0x3a2a22), hairStyle = "slick", eye = hex(0x6fe6ff), outfit = "staff", accent = hex(0x39c9ff), stern = true },
+		lines = {
+			"Halcyon City. Shops, arcades, the best ramen in the sky. No duels on the streets, please.",
+			"The Skybridge takes you back to Academy Island. The four towers are hard to miss.",
+		},
+	},
+	{
+		id = "city_kid", name = "Milo", epithet = "Future Crownbearer", academy = "city",
+		look = { height = 0.78, skin = hex(0xf4d6c0), hair = hex(0xffd24a), hairTip = hex(0xff7a2a), hairStyle = "spiky", eye = hex(0x39c9ff), outfit = "hoodie", accent = hex(0xffd24a) },
+		lines = {
+			"Are you a real student?! Which school? Did you beat anyone? Who is your rank?",
+			"When I grow up I am going to hold Seat I at EVERY academy. At the same time.",
+		},
+	},
+	{
+		id = "bridge_guard", name = "Sentinel Ward", epithet = "Skybridge Watch", academy = "city",
+		look = { height = 1.08, bulk = 1.1, skin = hex(0xd9b08c), hair = hex(0x8d8f96), hairTip = hex(0xc9ccd4), hairStyle = "slick", eye = hex(0x7ad0c0), outfit = "armor", accent = hex(0x6fe6ff), stern = true },
+		lines = {
+			"Halcyon City is straight ahead. Academy Island is behind you. Mind the drop.",
+		},
+	},
+}
+
 local byId = {}
-for _, list in { Roster.Seats, Roster.Aces, Roster.Staff, Roster.Crowd } do
+for _, list in { Roster.Seats, Roster.Aces, Roster.Staff, Roster.Crowd, Roster.Talkers } do
 	for _, npc in list do
 		byId[npc.id] = npc
 	end
