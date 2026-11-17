@@ -32,6 +32,12 @@ local function patchInstances()
 		end
 		return roblox.CFrame.new()
 	end
+	-- Lune stores a part's placement only in CFrame; read Position from it like Roblox does
+	roblox.implementProperty("BasePart", "Position", function(self)
+		return self.CFrame.Position
+	end, function(self, value)
+		self.CFrame = roblox.CFrame.new(value) * self.CFrame.Rotation
+	end)
 	roblox.implementMethod("Model", "GetPivot", function(self)
 		return pivotOf(self)
 	end)

@@ -43,6 +43,9 @@ local function clean(data)
 		p.look = Looks.sanitize(data.look)
 		p.coins = if type(data.coins) == "number" then math.max(0, math.floor(data.coins)) else 0
 		p.customised = data.customised == true
+		if type(data.weapon) == "string" then
+			p.weapon = data.weapon
+		end
 	end
 	return p
 end

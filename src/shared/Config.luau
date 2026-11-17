@@ -121,6 +121,7 @@ Config.Combat = {
 	ArenaRadius = 44,
 	FighterGap = 30, -- distance between the duelists at the start of a round
 	InputBuffer = 0.22,
+	BreakAwayCost = 25, -- Lumen spent to dash out of hitstun
 }
 
 Config.Campus = {

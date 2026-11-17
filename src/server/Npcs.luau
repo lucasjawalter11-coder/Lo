@@ -197,7 +197,7 @@ function Npcs.build(world: Instance)
 				MaxActivationDistance = 14,
 				RequiresLineOfSight = false,
 				KeyboardKeyCode = Enum.KeyCode.E,
-				GamepadKeyCode = Enum.KeyCode.ButtonX,
+				GamepadKeyCode = Enum.KeyCode.DPadDown,
 			}, model.PrimaryPart)
 			prompt:SetAttribute("Open", "talk:" .. id)
 			model.Parent = folder

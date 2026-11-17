@@ -129,17 +129,37 @@ end
 --- Dress `character` in `look` (a Looks.Look) and the uniform of `schoolId` (nil = visitor colours).
 function Appearance.apply(character: Model, look, schoolId: string?)
 	look = Looks.sanitize(look)
+	local uniform, accent = colours(schoolId)
+	local hairInfo = Looks.HairColors[look.hairColor]
+	return Appearance.dress(character, {
+		skin = Looks.Skin[look.skin].color,
+		hair = hairInfo.color,
+		hairTip = hairInfo.tip,
+		hairStyle = Looks.HairStyles[look.hair].id,
+		eye = Looks.EyeColors[look.eye].color,
+		outfit = Looks.Outfits[look.outfit].id,
+		uniform = uniform,
+		accent = accent,
+		avatar = look.avatar,
+		school = schoolId,
+	})
+end
+
+--- Dress `character` from explicit colours (used for NPCs, whose looks are designed by hand).
+--- spec: { skin, hair, hairTip, hairStyle, eye, outfit, uniform, accent, avatar, school }
+function Appearance.dress(character: Model, spec)
 	local old = character:FindFirstChild("HalcyonLook")
 	if old then
 		old:Destroy()
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = "HalcyonLook"
-
-	local uniform, accent = colours(schoolId)
-	local skin = Looks.Skin[look.skin].color
-	local hairInfo = Looks.HairColors[look.hairColor]
-	local outfit = Looks.Outfits[look.outfit].id
+	local look = { avatar = spec.avatar == true }
+	local uniform, accent = spec.uniform, spec.accent
+	local skin = spec.skin
+	local hairInfo = { color = spec.hair, tip = spec.hairTip or spec.hair }
+	local outfit = if spec.outfit == "staff" then "coat" else spec.outfit
+	local schoolId = spec.school
 	local get = function(name: string): BasePart?
 		local p = character:FindFirstChild(name)
 		return if p and p:IsA("BasePart") then p else nil
@@ -221,8 +241,8 @@ function Appearance.apply(character: Model, look, schoolId: string?)
 			attach(folder, lower, lower.CFrame * CFrame.new(0, l.Y * 0.38, 0), Vector3.new(l.X + 0.2, 0.2, l.Z + 0.2), uniform.dark, M.SmoothPlastic, nil, "Belt")
 		end
 		if head then
-			face(folder, head, Looks.EyeColors[look.eye].color, mix(hairInfo.color, Color3.new(0, 0, 0), 0.3))
-			hair(folder, head, Looks.HairStyles[look.hair].id, hairInfo.color, hairInfo.tip, accent)
+			face(folder, head, spec.eye, mix(hairInfo.color, Color3.new(0, 0, 0), 0.3))
+			hair(folder, head, spec.hairStyle, hairInfo.color, hairInfo.tip, accent)
 		end
 	else
 		-- Keep the player's own avatar and add a school armband and sash.

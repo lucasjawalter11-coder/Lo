@@ -14,6 +14,10 @@ local World = require(script:WaitForChild("World"))
 local Npcs = require(script:WaitForChild("Npcs"))
 local Atmos = require(script:WaitForChild("Atmos"))
 local Profiles = require(script:WaitForChild("Profiles"))
+local Combat = require(script:WaitForChild("Combat"))
+local Ai = require(script:WaitForChild("Ai"))
+local Duels = require(script:WaitForChild("Duels"))
+local Weapons = require(Shared:WaitForChild("Weapons"))
 
 -- Characters are only created when a player presses Start Game in the hub.
 Players.CharacterAutoLoads = false
@@ -42,6 +46,32 @@ end
 local Dialogue = remote("RemoteEvent", "Dialogue")
 local MenuRemote = remote("RemoteFunction", "Menu")
 local LiftRemote = remote("RemoteEvent", "Lift")
+local DuelRemote = remote("RemoteEvent", "Duel")
+
+-- ---------------------------------------------------------------------------------------------
+-- Combat: fighters, free-fight zones, training dummies, duels
+-- ---------------------------------------------------------------------------------------------
+Combat.start(remotes)
+Duels.start({ Combat = Combat, Ai = Ai, Profiles = Profiles, anchors = anchors, remote = DuelRemote })
+for _, a in anchors:GetChildren() do
+	local radius = a:GetAttribute("Radius")
+	if string.sub(a.Name, 1, 5) == "Zone_" and type(radius) == "number" then
+		Combat.addZone(a.CFrame.Position, radius)
+	end
+end
+for _, d in world:GetDescendants() do
+	if d:IsA("Model") and d:GetAttribute("Dummy") then
+		Combat.register(d, { kind = "dummy", name = "Training Dummy", hp = 5000, weapon = "saber" })
+	end
+end
+
+local function weaponFor(profile): string
+	local w = profile and profile.weapon
+	if type(w) == "string" and Weapons.List[w] then
+		return w
+	end
+	return (profile and profile.school and Weapons.SchoolDefault[profile.school]) or "saber"
+end
 
 local previews = ReplicatedStorage:FindFirstChild(Config.PreviewsName)
 if not previews then
@@ -81,7 +111,19 @@ local function onCharacter(player: Player, character: Model)
 	if root and profile then
 		character:PivotTo(spawnPoint(profile.school))
 	end
-	task.spawn(dress, player, character)
+	task.spawn(function()
+		dress(player, character)
+		if character.Parent then
+			local weapon = weaponFor(profile)
+			Weapons.attach(character, weapon)
+			Combat.register(character, { kind = "player", player = player, name = player.DisplayName, weapon = weapon })
+		end
+	end)
+	character.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			Combat.unregister(character)
+		end
+	end)
 	-- with the uniform on, accessories added later (slow avatar loads) are removed too
 	character.ChildAdded:Connect(function(child)
 		local p = Profiles.get(player)
@@ -234,6 +276,20 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 		end
 		return
 	end
+	if kind == "equip" then
+		local def = Weapons.List[id]
+		local profile = Profiles.get(player)
+		local f = player.Character and Combat.get(player.Character)
+		if def and profile then
+			profile.weapon = def.id
+			Profiles.markDirty(player)
+			if f then
+				Combat.setWeapon(f, def.id)
+			end
+			Dialogue:FireClient(player, { id = "rack", name = def.name, title = def.style, accent = def.color, lines = { def.desc, "Equipped. Your skills are on 1, 2 and 3, and your ultimate on G." } })
+		end
+		return
+	end
 	if kind == "talk" then
 		local npc = Roster.get(id)
 		if not npc then
@@ -257,6 +313,26 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 			title = npc.epithet or "",
 			accent = npc.look.accent,
 			lines = Npcs.linesFor(npc),
+			challenge = npc.weapon ~= nil and npc.level ~= nil,
 		})
 	end
+end)
+
+-- the Challenge button at the end of a duellist's dialogue
+Dialogue.OnServerEvent:Connect(function(player: Player, action: any, id: any)
+	if action ~= "challenge" or type(id) ~= "string" then
+		return
+	end
+	local npc = Roster.get(id)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local folder = world:FindFirstChild("Npcs")
+	local model = folder and folder:FindFirstChild(id)
+	if not (npc and root and model and model.PrimaryPart) then
+		return
+	end
+	if (model.PrimaryPart.Position - root.Position).Magnitude > 30 then
+		return
+	end
+	Duels.challenge(player, id)
 end)

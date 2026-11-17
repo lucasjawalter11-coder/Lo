@@ -20,6 +20,7 @@ local Roster = require(Shared:WaitForChild("Roster"))
 local Kit = require(script.Parent.Kit)
 local Props = require(script.Parent.Props)
 local Arena = require(script.Parent.Arena)
+local Weapons = require(Shared:WaitForChild("Weapons"))
 
 local M = Enum.Material
 local Pal = Props.Pal
@@ -58,7 +59,7 @@ local function build(world: Instance)
 	--- An invisible marker other code looks up by name (NPC posts, return points).
 	local function anchor(name: string, frame, x: number, y: number, z: number, yawDeg: number?)
 		local cf = frame.cf * CFrame.new(x, y, z) * CFrame.Angles(0, math.rad(yawDeg or 0), 0)
-		Kit.part(anchors, "Block", Vector3.new(1, 1, 1), cf, Pal.white, M.SmoothPlastic, { name = name, trans = 1, decor = true })
+		return Kit.part(anchors, "Block", Vector3.new(1, 1, 1), cf, Pal.white, M.SmoothPlastic, { name = name, trans = 1, decor = true })
 	end
 
 	local function prompt(part: BasePart, open: string, action: string, object: string, distance: number?)
@@ -70,7 +71,7 @@ local function build(world: Instance)
 			MaxActivationDistance = distance or 18,
 			RequiresLineOfSight = false,
 			KeyboardKeyCode = Enum.KeyCode.E,
-			GamepadKeyCode = Enum.KeyCode.ButtonX,
+			GamepadKeyCode = Enum.KeyCode.DPadDown,
 		}, part)
 		p:SetAttribute("Open", open)
 		return p
@@ -236,6 +237,7 @@ local function build(world: Instance)
 	local topPad = spire:cyl(0, TOP + 0.2, 51, 4.5, 0.3, Pal.lumen, M.Neon, { name = "SkyliftTop" })
 	prompt(topPad, "lift:down", "Ride the Skylift", "Down to the city", 12)
 	anchor("LiftTop", spire, 0, TOP + 3, 51, 180)
+	anchor("Zone_sky", spire, 0, TOP, 0):SetAttribute("Radius", 44)
 	Kit.sparkles(core, Pal.lumen, 10, { Speed = NumberRange.new(2, 5), Lifetime = NumberRange.new(2, 4) })
 
 	-- Register boards, one each side of the tower
@@ -417,16 +419,32 @@ local function build(world: Instance)
 		-- back wall with the weapon rack
 		local wall = t:box(0, 1.6, 133, 96, 26, 2, Pal.stoneWarm, M.Marble, { name = "RackWall" })
 		Kit.label(wall, Enum.NormalId.Front, "TRAINING HALL", { color = hex(0x8a2f3a), sizeY = 0.22, posY = 0.16, glow = false, font = Enum.Font.Michroma })
-		local rackColors = { Pal.lumen, Pal.gold, hex(0xe14bff), Pal.ember, hex(0x7dff7a), hex(0xff4fd8) }
-		for i, c in rackColors do
-			local sx = -35 + (i - 1) * 14
+		for i, id in Weapons.Order do
+			local def = Weapons.List[id]
+			local sx = -42.5 + (i - 1) * 17
+			t:box(sx, 5.4, 131.2, 8, 0.6, 1.4, Pal.woodDark, M.Wood, { decor = true })
 			t:box(sx, 6, 131.4, 1, 3, 0.8, Pal.darkMetal, M.Metal, { decor = true })
-			t:box(sx, 9, 131.4, 0.9, 10 + (i % 3) * 2, 0.5, c, M.Neon, { decor = true })
-			t:box(sx, 5.4, 131.2, 6, 0.6, 1.2, Pal.woodDark, M.Wood, { decor = true })
+			local m = Weapons.model(id, "right")
+			-- stand it upright on the rack, blade up
+			m:PivotTo(t.cf * CFrame.new(sx, 9.5, 130.6) * CFrame.Angles(math.rad(180), 0, 0))
+			for _, part in m:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.Anchored = true
+				end
+			end
+			m.Name = "Rack_" .. id
+			m.Parent = t.parent
+			local spot = t:box(sx, 1.6, 126, 8, 10, 4, Pal.white, M.SmoothPlastic, { trans = 1, decor = true, name = "RackSpot" })
+			prompt(spot, "equip:" .. id, "Equip", def.name, 10)
+			local plate = t:box(sx, 2.4, 131.5, 8, 2.2, 0.4, Pal.night, M.Glass, { decor = true })
+			Kit.label(plate, Enum.NormalId.Front, string.upper(def.name), { color = def.color })
 		end
 		-- training dummies
 		for _, p in { { -32, 34 }, { 32, 34 }, { -32, 100 }, { 32, 100 } } do
-			local f = t:shift(p[1], 1.6, p[2])
+			local f = t:group("TrainingDummy", p[1], 1.6, p[2])
+			f.parent:SetAttribute("Dummy", true)
+			local dummyRoot = f:box(0, 0.6, 0, 3, 7, 2.4, Pal.white, M.SmoothPlastic, { name = "HumanoidRootPart", trans = 1, decor = true })
+			f.parent.PrimaryPart = dummyRoot
 			f:cyl(0, 0, 0, 1.6, 0.6, Pal.darkMetal, M.Metal)
 			f:cyl(0, 0.6, 0, 0.6, 7, Pal.wood, M.Wood)
 			f:box(0, 3.4, 0, 3, 3.8, 2.2, hex(0xb9a27a), M.Fabric)
@@ -637,6 +655,7 @@ local function build(world: Instance)
 			ring:box(0, 0, sz, 80, 4, 10, Kit.mix(info.uniform.jacket, Pal.slate, 0.5), M.Concrete)
 			ring:box(0, 4, sz + (if sz > 0 then 3 else -3), 80, 3, 4, Kit.mix(info.uniform.jacket, Pal.slate, 0.5), M.Concrete)
 		end
+		anchor("Zone_" .. info.id, ring, 0, 1, 0):SetAttribute("Radius", 45)
 		local board = ring:box(0, 1, 70, 40, 14, 1, Pal.night, M.Glass, { decor = true, name = "SchoolBoard" })
 		Kit.label(board, Enum.NormalId.Front, string.upper(info.short) .. " REGISTER", { color = info.accent, sizeY = 0.35 })
 		-- sports lawn and garden
