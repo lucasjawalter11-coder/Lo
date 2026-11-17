@@ -1,0 +1,263 @@
+--!nonstrict
+-- Props: the palette and the small reusable pieces the campus is dressed with.
+local Kit = require(script.Parent.Kit)
+
+local M = Enum.Material
+local hex = Kit.hex
+
+local Props = {}
+
+Props.Pal = {
+	stone = hex(0xd5dbe8),
+	stoneWarm = hex(0xe6dfd2),
+	stoneDark = hex(0x8c95aa),
+	slate = hex(0x39415a),
+	deck = hex(0x262c40),
+	night = hex(0x161b2c),
+	metal = hex(0x9aa3b5),
+	darkMetal = hex(0x2b3040),
+	glass = hex(0xbfe6ff),
+	grass = hex(0x5aa85c),
+	grassDark = hex(0x4a9150),
+	leaf = hex(0x4f9d58),
+	leafLight = hex(0x7fcf74),
+	blossom = hex(0xffb3d1),
+	blossomDeep = hex(0xff86b8),
+	autumn = hex(0xffb347),
+	wood = hex(0x8a5c3e),
+	woodDark = hex(0x5c3b28),
+	rock = hex(0x565c6e),
+	rockDark = hex(0x3a3f4f),
+	water = hex(0x49b8ff),
+	gold = hex(0xffc94a),
+	white = hex(0xf5f7fc),
+	lumen = hex(0x6fe6ff),
+	ember = hex(0xff7a2a),
+	cloth = hex(0xf0f0f5),
+}
+local Pal = Props.Pal
+
+-- Small deterministic random source, so the baked map is identical every time.
+function Props.rng(seed: number)
+	local state = seed % 2147483647
+	if state <= 0 then
+		state += 2147483646
+	end
+	return function(lo: number?, hi: number?): number
+		state = (state * 48271) % 2147483647
+		local u = (state - 1) / 2147483646
+		if lo and hi then
+			return lo + (hi - lo) * u
+		end
+		return u
+	end
+end
+
+--- Street lamp: pole, curved arm and a glowing lantern. `lit` adds a real light source.
+function Props.lamp(b, x: number, z: number, color: Color3, lit: boolean?, height: number?)
+	local h = height or 15
+	b:cyl(x, 0, z, 0.9, 0.8, Pal.darkMetal, M.Metal)
+	b:cyl(x, 0.8, z, 0.34, h - 0.8, Pal.darkMetal, M.Metal, { decor = true })
+	b:box(x, h - 0.2, z - 1.3, 0.5, 0.4, 3.2, Pal.darkMetal, M.Metal, { decor = true })
+	local lantern = b:box(x, h - 1.9, z - 2.6, 1.5, 1.7, 1.5, color, M.Neon, { decor = true, name = "Lantern" })
+	if lit then
+		Kit.glow(lantern, 46, 1.5, color)
+	end
+	return lantern
+end
+
+--- Low garden light.
+function Props.bollard(b, x: number, z: number, color: Color3)
+	b:cyl(x, 0, z, 0.5, 2.4, Pal.darkMetal, M.Metal, { decor = true })
+	b:cyl(x, 2.4, z, 0.6, 0.7, color, M.Neon, { decor = true })
+end
+
+--- Tree. kind: "round" | "blossom" | "pine" | "autumn".
+function Props.tree(b, x: number, z: number, kind: string?, scale: number?)
+	local s = scale or 1
+	local k = kind or "round"
+	if k == "pine" then
+		b:cyl(x, 0, z, 0.9 * s, 6 * s, Pal.woodDark, M.Wood, { shadow = false })
+		for i = 0, 2 do
+			local r = (6.2 - i * 1.6) * s
+			b:cyl(x, (4 + i * 4.4) * s, z, r, 3.4 * s, if i % 2 == 0 then Pal.leaf else Pal.grassDark, M.Grass, { decor = true })
+		end
+		b:cyl(x, 17.2 * s, z, 1.4 * s, 3 * s, Pal.leaf, M.Grass, { decor = true })
+		return
+	end
+	local c1, c2 = Pal.leaf, Pal.leafLight
+	if k == "blossom" then
+		c1, c2 = Pal.blossom, Pal.blossomDeep
+	elseif k == "autumn" then
+		c1, c2 = Pal.autumn, hex(0xff8a3c)
+	end
+	b:cyl(x, 0, z, 1.0 * s, 9 * s, Pal.woodDark, M.Wood, { shadow = false })
+	b:ball(x, 12.5 * s, z, 6.2 * s, c1, M.Grass, { decor = true })
+	b:ball(x + 3.6 * s, 10.5 * s, z + 1.8 * s, 4.3 * s, c2, M.Grass, { decor = true })
+	b:ball(x - 3.2 * s, 10.8 * s, z - 2.4 * s, 4.6 * s, c1, M.Grass, { decor = true })
+	b:ball(x + 0.6 * s, 15.6 * s, z - 0.8 * s, 3.8 * s, c2, M.Grass, { decor = true })
+end
+
+function Props.bush(b, x: number, z: number, color: Color3?, r: number?)
+	local radius = r or 2.4
+	b:ball(x, radius * 0.7, z, radius, color or Pal.leaf, M.Grass, { decor = true })
+end
+
+--- Bench facing local -Z.
+function Props.bench(b, x: number, z: number, yawDeg: number?)
+	local f = b:shift(x, 0, z, yawDeg or 0)
+	f:box(0, 1.5, 0, 9, 0.45, 2.6, Pal.wood, M.WoodPlanks)
+	f:box(0, 1.95, 1.2, 9, 2.3, 0.4, Pal.wood, M.WoodPlanks, { rot = CFrame.Angles(math.rad(-10), 0, 0), decor = true })
+	f:box(-3.6, 0, 0, 0.5, 1.5, 2.4, Pal.darkMetal, M.Metal, { decor = true })
+	f:box(3.6, 0, 0, 0.5, 1.5, 2.4, Pal.darkMetal, M.Metal, { decor = true })
+end
+
+--- Hanging banner on a pole. The cloth faces local -Z / +Z.
+function Props.banner(b, x: number, z: number, color: Color3, height: number?, yawDeg: number?)
+	local h = height or 26
+	local f = b:shift(x, 0, z, yawDeg or 0)
+	f:cyl(0, 0, 0, 0.45, h, Pal.darkMetal, M.Metal, { shadow = false })
+	f:box(2.6, h - 1.2, 0, 5.6, 0.4, 0.4, Pal.darkMetal, M.Metal, { decor = true })
+	f:box(2.9, h - 13.2, 0, 4.6, 12, 0.25, color, M.Fabric, { decor = true })
+	f:box(2.9, h - 9.2, 0, 2.2, 2.2, 0.4, Pal.white, M.Neon, { decor = true, rot = CFrame.Angles(0, 0, math.rad(45)) })
+	f:wedge(2.9, h - 15.4, 0, 0.25, 2.2, 2.3, 90, color, M.Fabric, { decor = true, rot = CFrame.Angles(math.rad(180), 0, 0) })
+	f:ball(0, h + 0.5, 0, 0.8, Pal.gold, M.Metal, { decor = true })
+end
+
+--- Raised planter with a tree and bushes.
+function Props.planter(b, x: number, z: number, size: number, treeKind: string?, yawDeg: number?)
+	local f = b:shift(x, 0, z, yawDeg or 0)
+	f:box(0, 0, 0, size, 1.6, size, Pal.stoneDark, M.Marble)
+	f:box(0, 1.6, 0, size - 1.4, 0.25, size - 1.4, Pal.grass, M.Grass, { decor = true })
+	Props.tree(f:shift(0, 1.6, 0), 0, 0, treeKind or "blossom", 1.05)
+	local q = size / 2 - 2.6
+	Props.bush(f:shift(0, 1.6, 0), -q, -q, Pal.leafLight, 1.7)
+	Props.bush(f:shift(0, 1.6, 0), q, q, Pal.leaf, 1.9)
+end
+
+--- Glass railing between two points (posts at both ends).
+function Props.rail(b, a: Vector3, c: Vector3, color: Color3?)
+	local glow = color or Pal.lumen
+	local mid = (a + c) / 2
+	local len = (c - a).Magnitude
+	local yaw = math.deg(math.atan2(c.X - a.X, c.Z - a.Z)) + 90
+	local f = b:shift(mid.X, mid.Y, mid.Z, yaw)
+	f:box(0, 0.4, 0, len, 3.4, 0.25, Pal.glass, M.Glass, { trans = 0.6, shadow = false })
+	f:box(0, 3.8, 0, len, 0.35, 0.5, glow, M.Neon, { decor = true })
+	f:box(0, 0, 0, len, 0.4, 0.7, Pal.darkMetal, M.Metal, { decor = true })
+end
+
+--- Free-standing holographic sign: a framed glass panel with glowing text on both sides.
+function Props.holo(b, x: number, y: number, z: number, w: number, h: number, text: string, color: Color3, yawDeg: number?, name: string?)
+	local f = b:shift(x, y, z, yawDeg or 0)
+	local panel = f:box(0, 0, 0, w, h, 0.3, Pal.night, M.Glass, { trans = 0.35, decor = true, name = name or "Holo" })
+	f:box(0, h, 0, w + 0.8, 0.4, 0.6, color, M.Neon, { decor = true })
+	f:box(0, -0.4, 0, w + 0.8, 0.4, 0.6, color, M.Neon, { decor = true })
+	Kit.label(panel, Enum.NormalId.Front, text, { color = color })
+	Kit.label(panel, Enum.NormalId.Back, text, { color = color })
+	return panel
+end
+
+--- Stone column with a capital.
+function Props.column(b, x: number, z: number, radius: number, height: number, color: Color3?, mat: Enum.Material?)
+	local c = color or Pal.stone
+	b:cyl(x, 0, z, radius * 1.35, 1.2, c, mat or M.Marble)
+	b:cyl(x, 1.2, z, radius, height - 2.4, c, mat or M.Marble)
+	b:cyl(x, height - 1.2, z, radius * 1.35, 1.2, c, mat or M.Marble, { decor = true })
+end
+
+--- A Lumen crystal: tilted glowing shards on a plinth.
+function Props.crystal(b, x: number, z: number, color: Color3, scale: number?)
+	local s = scale or 1
+	local f = b:shift(x, 0, z)
+	f:cyl(0, 0, 0, 3.4 * s, 1.2 * s, Pal.slate, M.Marble)
+	f:box(0, 1.2 * s, 0, 1.8 * s, 9 * s, 1.8 * s, color, M.Neon, { decor = true, rot = CFrame.Angles(math.rad(6), math.rad(30), math.rad(-5)) })
+	f:box(1.5 * s, 1.2 * s, 0.6 * s, 1.2 * s, 5.6 * s, 1.2 * s, color, M.Glass, { decor = true, trans = 0.25, rot = CFrame.Angles(math.rad(-14), math.rad(10), math.rad(-22)) })
+	local shard = f:box(-1.3 * s, 1.2 * s, -0.7 * s, 1.1 * s, 4.4 * s, 1.1 * s, color, M.Glass, { decor = true, trans = 0.25, rot = CFrame.Angles(math.rad(12), math.rad(50), math.rad(20)) })
+	Kit.glow(shard, 30, 1.4, color)
+end
+
+--- Round fountain with a glowing jet.
+function Props.fountain(b, x: number, z: number, radius: number, color: Color3)
+	local f = b:shift(x, 0, z)
+	f:cyl(0, 0, 0, radius, 1.6, Pal.stone, M.Marble)
+	f:cyl(0, 1.3, 0, radius - 1.2, 0.5, Pal.water, M.Glass, { trans = 0.35, decor = true, refl = 0.3 })
+	f:cyl(0, 1.6, 0, radius * 0.32, 3, Pal.stone, M.Marble)
+	f:cyl(0, 4.6, 0, radius * 0.5, 0.8, Pal.stone, M.Marble, { decor = true })
+	local jet = f:cyl(0, 5.4, 0, 0.5, 7, color, M.Neon, { decor = true, trans = 0.3 })
+	Kit.glow(jet, 34, 1.6, color)
+	Kit.sparkles(jet, color, 14, { Speed = NumberRange.new(5, 9), SpreadAngle = Vector2.new(25, 25), Acceleration = Vector3.new(0, -14, 0) })
+end
+
+--- A floating rock islet with a grass cap and a few trees.
+function Props.islet(b, x: number, y: number, z: number, radius: number, seed: number, feature: string?)
+	local rnd = Props.rng(seed)
+	local f = b:shift(x, y, z, rnd(0, 360))
+	f:cyl(0, -6, 0, radius, 6, Pal.grass, M.Grass, { decor = true })
+	f:cyl(0, -18, 0, radius * 0.82, 12, Pal.rock, M.Slate, { decor = true })
+	f:cyl(0, -36, 0, radius * 0.55, 18, Pal.rockDark, M.Slate, { decor = true })
+	f:cyl(0, -58, 0, radius * 0.26, 22, Pal.rockDark, M.Slate, { decor = true })
+	local count = math.max(2, math.floor(radius / 14))
+	for i = 1, count do
+		local a, r = rnd(0, math.pi * 2), rnd(0.15, 0.7) * radius
+		Props.tree(f, math.sin(a) * r, math.cos(a) * r, if i % 3 == 0 then "blossom" elseif i % 3 == 1 then "round" else "pine", rnd(0.9, 1.5))
+	end
+	if feature == "falls" then
+		local fall = f:box(radius * 0.86, -150, 0, 1.2, 148, 10, Pal.water, M.Neon, { decor = true, trans = 0.45 })
+		fall.Name = "Waterfall"
+		f:cyl(radius * 0.4, -5.9, 0, radius * 0.36, 0.3, Pal.water, M.Glass, { decor = true, trans = 0.3 })
+	elseif feature == "pagoda" then
+		for i = 0, 2 do
+			local w = 22 - i * 5
+			f:box(0, i * 11, 0, w - 6, 8, w - 6, Pal.stoneWarm, M.Marble, { decor = true })
+			f:box(0, 8 + i * 11, 0, w + 4, 1.2, w + 4, hex(0x8a2f3a), M.Slate, { decor = true })
+		end
+		f:cyl(0, 34, 0, 0.6, 10, Pal.gold, M.Metal, { decor = true })
+		local beacon = f:ball(0, 45, 0, 1.6, Pal.lumen, M.Neon, { decor = true })
+		Kit.glow(beacon, 60, 2, Pal.lumen)
+	elseif feature == "beacon" then
+		f:cyl(0, 0, 0, 3, 46, Pal.darkMetal, M.Metal, { decor = true })
+		local beacon = f:ball(0, 49, 0, 4, Pal.lumen, M.Neon, { decor = true })
+		Kit.glow(beacon, 60, 2.5, Pal.lumen)
+	end
+end
+
+--- Distant sky-city tower on its own hovering base.
+function Props.skyTower(b, x: number, y: number, z: number, width: number, height: number, accent: Color3, seed: number)
+	local rnd = Props.rng(seed)
+	local f = b:shift(x, y, z, rnd(0, 90))
+	local body = hex(0x1c2742)
+	f:cyl(0, -30, 0, width * 1.5, 30, hex(0x232c44), M.Slate, { decor = true })
+	f:cyl(0, -70, 0, width * 0.8, 40, hex(0x1a2135), M.Slate, { decor = true })
+	f:box(0, 0, 0, width, height, width, body, M.SmoothPlastic, { decor = true })
+	f:box(0, height, 0, width * 0.6, height * 0.18, width * 0.6, body, M.SmoothPlastic, { decor = true })
+	f:cyl(0, height * 1.18, 0, 1.6, height * 0.16, accent, M.Neon, { decor = true })
+	-- window bands
+	for i = 1, 4 do
+		local hy = height * (0.14 + 0.2 * (i - 1))
+		f:box(0, hy, 0, width + 0.6, height * 0.035, width + 0.6, if i % 2 == 0 then accent else hex(0xffe9b0), M.Neon, { decor = true })
+	end
+end
+
+--- A docked or drifting airship (decor).
+function Props.airship(b, x: number, y: number, z: number, yawDeg: number, accent: Color3, scale: number?)
+	local s = scale or 1
+	local f = b:shift(x, y, z, yawDeg)
+	local hull = Pal.white
+	f:box(0, 0, 0, 16 * s, 9 * s, 62 * s, hull, M.SmoothPlastic, { decor = true })
+	f:wedge(0, 0, -39 * s, 16 * s, 9 * s, 16 * s, 0, hull, M.SmoothPlastic, { decor = true })
+	f:wedge(0, 0, 37 * s, 16 * s, 9 * s, 12 * s, 180, hull, M.SmoothPlastic, { decor = true })
+	f:box(0, 9 * s, 6 * s, 10 * s, 5 * s, 26 * s, Pal.darkMetal, M.Metal, { decor = true })
+	f:box(0, 10.4 * s, 6 * s, 10.4 * s, 2 * s, 22 * s, hex(0xfff1c4), M.Neon, { decor = true })
+	f:box(8.2 * s, 3.6 * s, 0, 0.5 * s, 1.2 * s, 58 * s, accent, M.Neon, { decor = true })
+	f:box(-8.2 * s, 3.6 * s, 0, 0.5 * s, 1.2 * s, 58 * s, accent, M.Neon, { decor = true })
+	f:box(15 * s, 2 * s, 14 * s, 14 * s, 1 * s, 14 * s, Pal.metal, M.Metal, { decor = true })
+	f:box(-15 * s, 2 * s, 14 * s, 14 * s, 1 * s, 14 * s, Pal.metal, M.Metal, { decor = true })
+	f:rod("z", 21 * s, 2.4 * s, 14 * s, 3 * s, 12 * s, Pal.darkMetal, M.Metal, { decor = true })
+	f:rod("z", -21 * s, 2.4 * s, 14 * s, 3 * s, 12 * s, Pal.darkMetal, M.Metal, { decor = true })
+	f:rod("z", 21 * s, 2.4 * s, 20.4 * s, 2.4 * s, 1 * s, accent, M.Neon, { decor = true })
+	f:rod("z", -21 * s, 2.4 * s, 20.4 * s, 2.4 * s, 1 * s, accent, M.Neon, { decor = true })
+	f:box(0, 9 * s, 28 * s, 1 * s, 9 * s, 10 * s, hull, M.SmoothPlastic, { decor = true })
+end
+
+return Props

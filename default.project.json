@@ -1,0 +1,56 @@
+{
+  "name": "HalcyonClash",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "HalcyonShared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "HalcyonServer": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$properties": {
+        "CameraMaxZoomDistance": 48,
+        "CharacterWalkSpeed": 20,
+        "EnableMouseLockOption": false
+      },
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "HalcyonClient": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$properties": {
+        "ScreenOrientation": "LandscapeSensor"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Technology": "Future"
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "FallenPartsDestroyHeight": -900
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage"
+    },
+    "SoundService": {
+      "$className": "SoundService"
+    }
+  }
+}

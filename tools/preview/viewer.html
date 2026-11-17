@@ -1,0 +1,161 @@
+<!doctype html>
+<!-- Dev helper: renders a scene dump (parts as boxes, balls, cylinders, wedges) so the Roblox map and NPCs can be
+     checked without opening Roblox Studio. Used by tools/preview/shot.mjs. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { margin: 0; background: #0b1020; overflow: hidden; } canvas { display: block; }</style>
+</head>
+<body>
+<script type="module">
+import * as THREE from '/web/node_modules/three/build/three.module.js';
+
+const params = new URLSearchParams(location.search);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const sky = params.get('sky') || 'dusk';
+scene.background = new THREE.Color(sky === 'night' ? 0x0a1024 : 0x7fa6d8);
+scene.fog = new THREE.Fog(scene.background.getHex(), 600, 3200);
+scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x49506a, 1.5));
+const sun = new THREE.DirectionalLight(0xfff0d8, 2.2);
+sun.position.set(-0.5, 0.8, 0.35);
+scene.add(sun);
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.2, 6000);
+
+// Unit geometries. Roblox cylinders run along X; wedges have the tall face at +Z and the slope falling toward -Z.
+const GEO = {
+  Block: new THREE.BoxGeometry(1, 1, 1),
+  Ball: new THREE.SphereGeometry(0.5, 20, 14),
+  Cylinder: new THREE.CylinderGeometry(0.5, 0.5, 1, 28).rotateZ(Math.PI / 2),
+  Wedge: (() => {
+    const P = [[-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, 0.5, 0.5]];
+    const tris = [[0, 1, 2], [0, 2, 3], [3, 2, 5], [3, 5, 4], [0, 4, 5], [0, 5, 1], [0, 3, 4], [1, 5, 2]];
+    const v = [];
+    for (const t of tris) for (const i of t) v.push(...P[i]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+    g.computeVertexNormals();
+    return g;
+  })(),
+};
+
+const ROUGH = { Metal: 0.35, DiamondPlate: 0.4, Foil: 0.2, Glass: 0.1, Ice: 0.15, Marble: 0.35, SmoothPlastic: 0.55, Plastic: 0.6, Neon: 1 };
+const FACE = {
+  Front: { n: [0, 0, -1], ry: Math.PI, rx: 0 }, Back: { n: [0, 0, 1], ry: 0, rx: 0 },
+  Left: { n: [-1, 0, 0], ry: -Math.PI / 2, rx: 0 }, Right: { n: [1, 0, 0], ry: Math.PI / 2, rx: 0 },
+  Top: { n: [0, 1, 0], ry: 0, rx: -Math.PI / 2 }, Bottom: { n: [0, -1, 0], ry: 0, rx: Math.PI / 2 },
+};
+
+function partMatrix(p) {
+  const r = p.r;
+  const m = new THREE.Matrix4().set(r[0], r[1], r[2], p.p[0], r[3], r[4], r[5], p.p[1], r[6], r[7], r[8], p.p[2], 0, 0, 0, 1);
+  return m;
+}
+
+function drawGui(gui, aspect) {
+  const c = document.createElement('canvas');
+  const H = 256, W = Math.max(64, Math.min(2048, Math.round(H * aspect)));
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  for (const n of gui.nodes) {
+    const x = n.x * W, y = n.y * H, w = n.w * W, h = n.h * H;
+    g.save();
+    g.translate(x + w / 2, y + h / 2);
+    if (n.rot) g.rotate(n.rot * Math.PI / 180);
+    if (n.t < 1) {
+      g.globalAlpha = 1 - n.t;
+      g.fillStyle = `rgb(${n.c.map((v) => Math.round(v * 255)).join(',')})`;
+      const rad = Math.min(w, h) * Math.min(n.corner || 0, 0.5);
+      g.beginPath();
+      if (g.roundRect) g.roundRect(-w / 2, -h / 2, w, h, rad); else g.rect(-w / 2, -h / 2, w, h);
+      g.fill();
+    }
+    if (n.text) {
+      g.globalAlpha = 1;
+      g.fillStyle = `rgb(${n.tc.map((v) => Math.round(v * 255)).join(',')})`;
+      let size = h * 0.8;
+      g.font = `bold ${size}px sans-serif`;
+      const tw = g.measureText(n.text).width;
+      if (tw > w) { size *= w / tw; g.font = `bold ${size}px sans-serif`; }
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(n.text, 0, 0);
+    }
+    g.restore();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+async function load(url) {
+  const parts = await (await fetch(url)).json();
+  const buckets = new Map();
+  const tmp = new THREE.Matrix4(), scl = new THREE.Matrix4();
+  for (const p of parts) {
+    const neon = p.m === 'Neon' || p.m === 'ForceField';
+    const trans = p.t || 0;
+    let size = p.z.slice();
+    if (p.s === 'Ball') { const d = Math.min(...size); size = [d, d, d]; }
+    if (p.s === 'Cylinder') { const d = Math.min(size[1], size[2]); size = [size[0], d, d]; }
+    const m = partMatrix(p).multiply(scl.makeScale(size[0], size[1], size[2]));
+    if (trans > 0.02 || p.m === 'Glass' || p.m === 'ForceField') {
+      const mat = neon
+        ? new THREE.MeshBasicMaterial({ color: new THREE.Color(...p.c), transparent: true, opacity: Math.max(0.12, 1 - trans) * (p.m === 'ForceField' ? 0.5 : 1), depthWrite: false })
+        : new THREE.MeshStandardMaterial({ color: new THREE.Color(...p.c), transparent: true, opacity: Math.max(0.12, (1 - trans) * (p.m === 'Glass' ? 0.55 : 1)), roughness: 0.15, depthWrite: false });
+      const mesh = new THREE.Mesh(GEO[p.s] || GEO.Block, mat);
+      mesh.matrixAutoUpdate = false; mesh.matrix.copy(m);
+      scene.add(mesh);
+    } else {
+      const key = `${p.s}|${neon ? 'neon' : (ROUGH[p.m] ?? 0.8)}`;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push({ m: m.clone(), c: p.c });
+    }
+    if (p.gui) {
+      for (const gui of p.gui) {
+        const f = FACE[gui.face]; if (!f) continue;
+        const dims = { Front: [p.z[0], p.z[1], p.z[2]], Back: [p.z[0], p.z[1], p.z[2]], Left: [p.z[2], p.z[1], p.z[0]], Right: [p.z[2], p.z[1], p.z[0]], Top: [p.z[0], p.z[2], p.z[1]], Bottom: [p.z[0], p.z[2], p.z[1]] }[gui.face];
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(dims[0], dims[1]), new THREE.MeshBasicMaterial({ map: drawGui(gui, dims[0] / dims[1]), transparent: true, depthWrite: false }));
+        const local = new THREE.Matrix4().makeTranslation(f.n[0] * (dims[2] / 2 + 0.02), f.n[1] * (dims[2] / 2 + 0.02), f.n[2] * (dims[2] / 2 + 0.02))
+          .multiply(new THREE.Matrix4().makeRotationY(f.ry)).multiply(new THREE.Matrix4().makeRotationX(f.rx));
+        plane.matrixAutoUpdate = false; plane.matrix.copy(partMatrix(p).multiply(local));
+        plane.renderOrder = 2;
+        scene.add(plane);
+      }
+    }
+  }
+  for (const [key, list] of buckets) {
+    const [shape, kind] = key.split('|');
+    const mat = kind === 'neon' ? new THREE.MeshBasicMaterial() : new THREE.MeshStandardMaterial({ roughness: Number(kind), metalness: Number(kind) < 0.45 ? 0.35 : 0 });
+    const inst = new THREE.InstancedMesh(GEO[shape] || GEO.Block, mat, list.length);
+    const col = new THREE.Color();
+    list.forEach((e, i) => {
+      inst.setMatrixAt(i, e.m);
+      col.setRGB(e.c[0], e.c[1], e.c[2], THREE.SRGBColorSpace);
+      if (kind === 'neon') col.multiplyScalar(1.5);
+      inst.setColorAt(i, col);
+    });
+    inst.frustumCulled = false;
+    scene.add(inst);
+  }
+  return parts.length;
+}
+
+window.shoot = (cam) => {
+  camera.fov = cam.fov || 60;
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  camera.position.set(...cam.pos);
+  camera.lookAt(...cam.look);
+  renderer.render(scene, camera);
+};
+
+window.partCount = await load(params.get('scene'));
+window.ready = true;
+</script>
+</body>
+</html>
