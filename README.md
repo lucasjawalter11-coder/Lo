@@ -1,7 +1,7 @@
 # Halcyon Clash (Roblox)
 
-An academy duel game for Roblox: four rival schools, each with its own tower, district and rank ladder,
-on a floating island next to Halcyon City.
+An academy duel game for Roblox: four rival schools, each with its own tower and walled campus,
+spread across one big landscape with Halcyon City and a central plaza.
 
 ## Put it in Roblox Studio
 
@@ -13,15 +13,18 @@ The world is already inside the place file, so nothing has to be imported by han
 
 ## What is in it so far
 
-- **Academy Island**: the Register plaza and spire in the centre, the Skydock spawn, the Training Hall,
-  the Crown Arena gate, gardens, ponds and lookouts around the rim.
-- **Four school districts**, each with its own ground and its own high-rise tower:
+- **One big landscape**, 3,600 × 3,600 studs, ringed by rolling hills and mountains. Nothing floats.
+- **The central hub**: the Register plaza and spire, the arrival station where players spawn, the
+  Training Hall, the Crown Arena gate, the market street, gardens and a lake.
+- **Four school campuses**, each on its own walled land about 820 studs from the centre, joined to the hub
+  by its own road. Every campus has a gate with the school's name, two dormitories, its own duel court and
+  rank board, a sports lawn, and a different ground and tower:
   - Northwind Academy: twin ice-glass spires on snow
   - Solcrest Institute: a stepped sun tower on sandstone
   - Arcline Polytechnic: a round research tower wrapped in glowing rings
   - Ironreach Citadel: a fortress tower with forge chimneys on basalt
-- **Halcyon City** across the Skybridge: a street grid of neon high-rises, shop signs, a central square
-  with a clock tower and fountains, and parked hover cars.
+- **Halcyon City** down the city road to the west: a street grid of neon high-rises, shop signs, a central
+  square with a clock tower and fountains, and parked hover cars.
 - **38 NPCs**: seat-holders, the four school aces, school guides, staff and city people. Walk up and
   press **E** (keyboard), **X** (controller) or tap the prompt (mobile) to talk.
 - A duel arena template in ServerStorage (not used yet), plus golden-hour lighting, bloom and clouds.
