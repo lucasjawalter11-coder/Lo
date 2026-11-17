@@ -265,8 +265,99 @@ Roster.Talkers = {
 	},
 }
 
+
+-- ---------------------------------------------------------------------------------------------
+-- Every school has its own Register of twelve seats. The designed seat-holders above keep their
+-- seats in their own school; generated students fill the rest (the same every time).
+-- ---------------------------------------------------------------------------------------------
+local SEAT_LEVELS = { 19, 17, 15, 13, 12, 10, 9, 7, 6, 4, 3, 2 }
+local FIRST_F = { "Aiko", "Mina", "Rhea", "Lena", "Sora", "Iris", "Nadia", "Kira", "Ember", "Lyra", "Hana", "Vera", "Saya", "Talia", "Ines", "Mei" }
+local FIRST_M = { "Ren", "Theo", "Kai", "Darius", "Sho", "Felix", "Arlo", "Hugo", "Jin", "Oskar", "Rafe", "Tomas", "Yuto", "Emil", "Corin", "Luca" }
+local LAST = { "Asano", "Briar", "Calder", "Drummond", "Everly", "Fujita", "Graves", "Hale", "Ishida", "Keane", "Lowell", "Moreau", "Nakai", "Orsini", "Pryce", "Quill", "Rookwood", "Sato", "Thorne", "Vance", "Wilder", "Yamada", "Zell", "Ashby" }
+local EPITHETS = {
+	"The Steady Hand", "Second Wind", "Quick Study", "The Long Watch", "Iron Nerve", "Spark", "The Patient", "Rising Tide",
+	"Night Owl", "The Bulwark", "Afterimage", "Glasswork", "Clean Break", "The Gambit", "Ricochet", "Last Light",
+}
+local TAUNTS = {
+	"I have watched you climb. Let us see if you can keep climbing.",
+	"Every seat on this board was earned. Earn mine.",
+	"Do not hold back. I certainly will not.",
+	"You came all this way. I hope you brought your best.",
+}
+local LOSES = { "Fair and square. The seat is yours.", "Well fought. I will be back for it.", "Hah. Good. That was a real duel." }
+local WINS = { "Not today.", "Train harder and come back.", "The Register stays as it is." }
+local STYLES = { "spiky", "short", "slick", "bob", "ponytail", "long", "twin", "bun" }
+local SKINS = { hex(0xf6dccb), hex(0xf0c8ad), hex(0xe2b594), hex(0xd9a37e), hex(0xc08a62), hex(0xa5663f), hex(0x7a4f36), hex(0x5a3826) }
+local HAIRS = { { hex(0x14131a), hex(0x3a3a4a) }, { hex(0x5a3522), hex(0x8a5a3a) }, { hex(0xb5482a), hex(0xff7a3a) }, { hex(0xe8c66a), hex(0xfff0b0) }, { hex(0xd9e2f2), hex(0x7fcfff) }, { hex(0xff8fb0), hex(0xffd0dd) }, { hex(0x6b2bd6), hex(0xe14bff) }, { hex(0x2f5bd6), hex(0x39c9ff) }, { hex(0x35d6c3), hex(0xb6fff3) } }
+local EYES = { hex(0x2e9bff), hex(0xffa521), hex(0xc04dff), hex(0xff5a2a), hex(0x3fd08a), hex(0xff5f9a), hex(0x35d6c3) }
+local OUTFITS = { northwind = { "coat", "skirt" }, solcrest = { "skirt", "coat" }, arcline = { "hoodie", "coat" }, ironreach = { "armor", "coat" } }
+local SCHOOL_WEAPON = { northwind = "saber", solcrest = "lance", arcline = "pistols", ironreach = "maul" }
+local ALL_WEAPONS = { "saber", "lance", "maul", "pistols", "scythe", "discs" }
+
+local seatCache = {}
+
+local function lcg(seed: number)
+	local state = seed % 2147483647
+	return function(n: number?): number
+		state = (state * 48271) % 2147483647
+		local u = (state - 1) / 2147483646
+		return if n then 1 + math.floor(u * n) % n else u
+	end
+end
+
+--- The twelve seat-holders of a school's Register, Seat I first.
+function Roster.schoolSeats(academyId: string)
+	if seatCache[academyId] then
+		return seatCache[academyId]
+	end
+	local academy = Config.Academies[academyId]
+	local seats = {}
+	for _, npc in Roster.Seats do
+		if npc.academy == academyId then
+			for i, lvl in SEAT_LEVELS do
+				if lvl == npc.level then
+					seats[i] = npc
+				end
+			end
+		end
+	end
+	local rnd = lcg(#academyId * 7919 + string.byte(academyId, 1) * 131)
+	for i = 1, 12 do
+		if not seats[i] then
+			local fem = rnd() < 0.5
+			local first = if fem then FIRST_F[rnd(#FIRST_F)] else FIRST_M[rnd(#FIRST_M)]
+			local hair = HAIRS[rnd(#HAIRS)]
+			local outfits = OUTFITS[academyId]
+			local weapon = if rnd() < 0.55 then SCHOOL_WEAPON[academyId] else ALL_WEAPONS[rnd(#ALL_WEAPONS)]
+			local npc = {
+				id = string.format("%s_seat%02d", academyId, i),
+				name = first .. " " .. LAST[rnd(#LAST)],
+				epithet = EPITHETS[rnd(#EPITHETS)],
+				academy = academyId, weapon = weapon, level = SEAT_LEVELS[i],
+				ai = if i <= 3 then 3 elseif i <= 6 then 2 elseif i <= 9 then 1 else 0,
+				look = {
+					fem = fem, height = if fem then 0.9 + rnd() * 0.12 else 0.98 + rnd() * 0.14,
+					bulk = if outfits[1] == "armor" and not fem then 1.05 + rnd() * 0.15 else nil,
+					skin = SKINS[rnd(#SKINS)], hair = hair[1], hairTip = hair[2], hairStyle = STYLES[rnd(#STYLES)],
+					eye = EYES[rnd(#EYES)], outfit = outfits[rnd(#outfits)], accent = academy.accent,
+					glasses = rnd() < 0.15, stern = rnd() < 0.3,
+				},
+				taunt = TAUNTS[rnd(#TAUNTS)], lose = LOSES[rnd(#LOSES)], win = WINS[rnd(#WINS)],
+				generated = true,
+			}
+			seats[i] = npc
+		end
+	end
+	seatCache[academyId] = seats
+	return seats
+end
+
 local byId = {}
-for _, list in { Roster.Seats, Roster.Aces, Roster.Staff, Roster.Crowd, Roster.Talkers } do
+local lists = { Roster.Seats, Roster.Aces, Roster.Staff, Roster.Crowd, Roster.Talkers }
+for _, id in Config.AcademyOrder do
+	table.insert(lists, Roster.schoolSeats(id))
+end
+for _, list in lists do
 	for _, npc in list do
 		byId[npc.id] = npc
 	end

@@ -18,7 +18,7 @@ local Combat, Ai, Profiles, DuelRemote, anchorsFolder
 local active: { [Player]: any } = {}
 local slots: { [number]: boolean } = {}
 
-local NPC_WEAPON = { saber = "saber", lance = "lance", maul = "maul", pistols = "pistols", spear = "lance", hammer = "maul", pistol = "pistols", scythe = "scythe", orbit = "discs" }
+local NPC_WEAPON = { saber = "saber", lance = "lance", maul = "maul", pistols = "pistols", spear = "lance", hammer = "maul", pistol = "pistols", scythe = "scythe", orbit = "discs", discs = "discs" }
 
 local function slotPosition(slot: number): Vector3
 	return Vector3.new(9000 + (slot % 8) * 520, 0, 9000 + math.floor(slot / 8) * 520)

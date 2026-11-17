@@ -36,7 +36,7 @@ const page = await (await browser.newContext({ viewport: { width: W, height: H }
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 page.on('console', (m) => { if (m.type() === 'error') console.log('[console]', m.text()); });
 const scenePath = '/' + path.relative(root, path.resolve(args.scene || 'build/scene.json')).split(path.sep).join('/');
-await page.goto(`http://localhost:${port}/tools/preview/viewer.html?scene=${encodeURIComponent(scenePath)}&sky=${args.sky || 'dusk'}`);
+await page.goto(`http://localhost:${port}/tools/preview/viewer.html?scene=${encodeURIComponent(scenePath)}&sky=${args.sky || 'dusk'}&fog=${args.fog || 600}&fogfar=${args.fogfar || 3200}`);
 await page.waitForFunction('window.ready === true', null, { timeout: 120000 });
 console.log('parts:', await page.evaluate('window.partCount'));
 

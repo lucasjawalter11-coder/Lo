@@ -1,7 +1,7 @@
 # Halcyon Clash (Roblox)
 
-An academy duel game for Roblox: four rival schools, each with its own tower and walled campus,
-spread across one big landscape with Halcyon City and a central plaza.
+An academy duel game for Roblox: four rival schools, each with a whole district of its own, around a central
+tower that carries the Sky Arena, on a city of islands in a lake.
 
 ## Put it in Roblox Studio
 
@@ -15,7 +15,7 @@ The world is already inside the place file, so nothing has to be imported by han
 
 - **The hub when you join**: the camera circles the central spire while you choose
   **Start Game** or **Customize**. First-time players pick a school on a screen that flies the camera to
-  each school's tower; then they spawn inside that school's gate. In game, the **≡ MENU** button at the top
+  each school's tower; then they spawn at their school district's arrival station. In game, the **≡ MENU** button at the top
   (or **M** / D-pad up) brings the hub back, where you can resume, customize, or change school.
 - **Customize**: uniform style (long coat, pleated uniform, hoodie, light armour), hair style (8),
   hair colour (12), eye colour (8) and skin tone (8), with a spinning live preview. Your school sets the
@@ -23,29 +23,29 @@ The world is already inside the place file, so nothing has to be imported by han
   Looks and school are saved (turn on *Game Settings → Security → Enable Studio Access to API Services*
   to save while testing in Studio).
 
-- **A hexagonal island city on a lake**, about 2,700 studs across: paved streets with a sea-wall
-  promenade around the edge, the lake all around, green hills and mountains on the far shore. Grass is kept
-  to parks and gardens.
-- **City blocks** fill the land between the districts: white high-rises with glass faces and glowing floor
-  bands, shop streets, hex-tiled plazas with hologram screens, canals with footbridges, parks and courts.
-- **An elevated monorail loop** around the centre, with two trains.
-- **The Halcyon Spire** in the middle: a 600-stud hexagonal glass tower carrying the **Sky Arena**, a full
-  stadium where the tournaments will be held. Step on the **Skylift** pad at the tower's foot to ride up,
-  and on the pad up top to ride back down.
-- **The central hub** around the tower: the Register boards and the ring of twelve seats, the arrival
-  station where new players spawn, the Training Hall, the Crown Arena, the market street and gardens.
-- **Four school campuses**, each on its own walled land about 600 studs from the centre, joined to the hub
-  by its own road. Every campus has a gate with the school's name, two dormitories, its own duel court and
-  rank board, classroom wings, a sports lawn, and a different ground and tower:
+- **Nine islands on a lake, joined by bridges** (about 7,700 studs across):
+  - **Crown Plaza** in the middle: the **Halcyon Spire**, an 820-stud glass tower carrying the
+    **Sky Arena** (a stadium half again bigger than a duel arena) where the tournaments are held. Step on the
+    **Skylift** pad at the foot of the tower to ride up, and on the pad up top to ride down. A monorail
+    loops around the plaza.
+  - **Four school districts**, one per school, each a whole town of its own: a central Register plaza with
+    the school's **twelve seat-holders**, an arrival station where its students spawn, a training hall, a
+    shop street, gardens, city blocks in the school's colours, and on the far side the walled campus with
+    the school's tower.
+  - **Four city districts** between the schools: Lakeside Ward, Sunrise Market, Lantern Row and Gearworks,
+    each with a downtown grid of neon high-rises, shop streets, plazas, canals and courts.
+- **Transit gates** in every district (and at the foot of the Spire) open a travel menu, so you can jump
+  between districts instead of walking for minutes.
+- **Each school campus** has a gate with the school's name, two dormitories, its own duel court and rank
+  board, classroom wings, a sports lawn, and a different ground and tower:
   - Northwind Academy: twin ice-glass spires on snow
   - Solcrest Institute: a stepped sun tower on sandstone
   - Arcline Polytechnic: a round research tower wrapped in glowing rings
   - Ironreach Citadel: a fortress tower with forge chimneys on basalt
-- **Halcyon City** down the city road to the west: a street grid of neon high-rises, shop signs, a central
-  square with a clock tower and fountains, and parked hover cars.
-- **38 NPCs**: seat-holders, the four school aces, school guides, staff and city people. Walk up and
-  press **E** (keyboard), **X** (controller) or tap the prompt (mobile) to talk.
-- A duel arena template in ServerStorage (not used yet), plus golden-hour lighting, bloom and clouds.
+- **74 NPCs**: 48 seat-holders (twelve per school), the four school aces, school guides, staff, students
+  and city people. Walk up and press **E** (keyboard), **D-pad down** (controller) or tap the prompt
+  (mobile) to talk.
+- Golden-hour lighting, bloom and clouds; streaming is on so phones only load what is near them.
 
 - **Fighting** (see below): six weapons, combos, air juggles, guards, perfect guards, skills and ultimates.
   Talk to any seat-holder or school champion and press **Challenge** to duel them in a private arena.

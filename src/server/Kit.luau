@@ -184,7 +184,24 @@ end
 
 --- Any part by centre with a full local CFrame (for tilted or rolled pieces).
 function Builder.piece(self: Builder, shape: string, localCf: CFrame, size: Vector3, color: Color3, mat: Enum.Material?, o: PartOpts?): BasePart
-	return Kit.part(self.parent, shape, size, self.cf * localCf, color, mat, o)
+	--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
+end
+
+return Kit.part(self.parent, shape, size, self.cf * localCf, color, mat, o)
 end
 
 --- Blocks arranged in a circle (rings, colonnades, rails). `each(b, i, angle)` gets a frame at the rim
@@ -206,11 +223,45 @@ end
 -- Lights, signs and effects
 -- ---------------------------------------------------------------------------------------------
 function Kit.glow(part: Instance, range: number, brightness: number, color: Color3, shadows: boolean?): PointLight
-	return Kit.new("PointLight", { Range = range, Brightness = brightness, Color = color, Shadows = shadows == true }, part)
+	--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
+end
+
+return Kit.new("PointLight", { Range = range, Brightness = brightness, Color = color, Shadows = shadows == true }, part)
 end
 
 function Kit.spot(part: Instance, face: Enum.NormalId, range: number, brightness: number, color: Color3, angle: number?): SpotLight
-	return Kit.new("SpotLight", { Face = face, Range = range, Brightness = brightness, Color = color, Angle = angle or 70, Shadows = false }, part)
+	--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
+end
+
+return Kit.new("SpotLight", { Face = face, Range = range, Brightness = brightness, Color = color, Angle = angle or 70, Shadows = false }, part)
 end
 
 export type LabelOpts = {
@@ -241,7 +292,24 @@ function Kit.label(part: BasePart, face: Enum.NormalId, text: string, o: LabelOp
 	if opts.bg then
 		Kit.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = opts.bg, BackgroundTransparency = opts.bgTrans or 0, BorderSizePixel = 0 }, gui)
 	end
-	return Kit.new("TextLabel", {
+	--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
+end
+
+return Kit.new("TextLabel", {
 		Name = "Text",
 		Size = UDim2.fromScale(0.94, opts.sizeY or 0.8),
 		Position = UDim2.fromScale(0.5, opts.posY or 0.5),
@@ -258,11 +326,45 @@ end
 
 --- Rigid joint that keeps `part` where it currently is relative to `to`.
 function Kit.weld(to: BasePart, part: BasePart): Weld
-	return Kit.new("Weld", { Name = "Fix", Part0 = to, Part1 = part, C0 = to.CFrame:ToObjectSpace(part.CFrame) }, part)
+	--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
+end
+
+return Kit.new("Weld", { Name = "Fix", Part0 = to, Part1 = part, C0 = to.CFrame:ToObjectSpace(part.CFrame) }, part)
 end
 
 function Kit.attachment(part: BasePart, name: string, pos: Vector3): Attachment
-	return Kit.new("Attachment", { Name = name, Position = pos }, part)
+	--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
+end
+
+return Kit.new("Attachment", { Name = name, Position = pos }, part)
 end
 
 function Kit.sparkles(part: Instance, color: Color3, rate: number, o: { [string]: any }?): ParticleEmitter
@@ -282,7 +384,41 @@ function Kit.sparkles(part: Instance, color: Color3, rate: number, o: { [string]
 			props[k] = v
 		end
 	end
-	return Kit.new("ParticleEmitter", props, part)
+	--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
+end
+
+return Kit.new("ParticleEmitter", props, part)
+end
+
+--- Scales a built model about `origin` (parts, lights, attachments and surface text all keep their look).
+function Kit.scale(model: Instance, s: number, origin: CFrame)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = origin:ToObjectSpace(d.CFrame)
+			d.Size = d.Size * s
+			d.CFrame = origin * (CFrame.new(rel.Position * s) * rel.Rotation)
+		elseif d:IsA("Attachment") then
+			d.Position = d.Position * s
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range = math.min(60, d.Range * s)
+		elseif d:IsA("SurfaceGui") then
+			d.PixelsPerStud = d.PixelsPerStud / s
+		end
+	end
 end
 
 return Kit

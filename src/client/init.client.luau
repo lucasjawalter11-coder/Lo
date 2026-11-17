@@ -10,6 +10,7 @@ local Hub = require(script:WaitForChild("Hub"))
 local Fx = require(script:WaitForChild("Fx"))
 local Animator = require(script:WaitForChild("Animator"))
 local CombatClient = require(script:WaitForChild("CombatClient"))
+local TravelUi = require(script:WaitForChild("TravelUi"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -28,6 +29,12 @@ DialogueUi.onOpenChanged = CombatClient.setMenuOpen
 DialogueUi.onChallenge = function(id)
 	remotes:WaitForChild("Dialogue"):FireServer("challenge", id)
 end
+
+TravelUi.init(playerGui, remotes:WaitForChild("Travel"))
+TravelUi.onOpenChanged = CombatClient.setMenuOpen
+remotes:WaitForChild("Travel").OnClientEvent:Connect(function(data)
+	TravelUi.show(data)
+end)
 
 Hub.init(playerGui)
 

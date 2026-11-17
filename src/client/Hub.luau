@@ -153,7 +153,7 @@ end
 -- ---------------------------------------------------------------------------------------------
 local function towerPosition(schoolId: string): Vector3
 	local a = math.rad(Config.Academies[schoolId].angle)
-	local r = Config.Map.CampusGate + Config.Map.TowerDepth
+	local r = Config.Map.SchoolRing + Config.Map.CampusGate + Config.Map.TowerDepth
 	return Vector3.new(math.sin(a) * r, 0, math.cos(a) * r)
 end
 
@@ -170,12 +170,12 @@ local function startCamera()
 		if state.screen == "schools" and state.focusSchool then
 			local tower = towerPosition(state.focusSchool)
 			local dir = Vector3.new(tower.X, 0, tower.Z).Unit
-			local eye = tower - dir * 330 + Vector3.new(math.sin(orbit * 3) * 40, 120, 0)
+			local eye = tower - dir * 520 + Vector3.new(math.sin(orbit * 3) * 40, 160, 0)
 			target = CFrame.lookAt(eye, tower + Vector3.new(0, 170, 0))
 		else
 			local spire = Config.Map.Spire
-			local eye = spire + Vector3.new(math.sin(orbit) * 620, 80, math.cos(orbit) * 620)
-			target = CFrame.lookAt(eye, spire + Vector3.new(0, 40, 0))
+			local eye = spire + Vector3.new(math.sin(orbit) * 900, 60, math.cos(orbit) * 900)
+			target = CFrame.lookAt(eye, spire + Vector3.new(0, 60, 0))
 		end
 		current = current:Lerp(target, math.clamp(dt * 1.6, 0, 1))
 		camera.CFrame = current

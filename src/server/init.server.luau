@@ -47,6 +47,8 @@ local Dialogue = remote("RemoteEvent", "Dialogue")
 local MenuRemote = remote("RemoteFunction", "Menu")
 local LiftRemote = remote("RemoteEvent", "Lift")
 local DuelRemote = remote("RemoteEvent", "Duel")
+local travelList -- defined with the transit gates below
+local TravelRemote = remote("RemoteEvent", "Travel")
 
 -- ---------------------------------------------------------------------------------------------
 -- Combat: fighters, free-fight zones, training dummies, duels
@@ -251,6 +253,49 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- ---------------------------------------------------------------------------------------------
+-- Transit gates: fast travel between the nine districts
+-- ---------------------------------------------------------------------------------------------
+local Campus = require(script:WaitForChild("Campus"))
+
+travelList = function(here: string?)
+	local out = {}
+	for _, r in Campus.Regions do
+		table.insert(out, {
+			tag = r.tag, name = r.title, here = r.tag == here, color = r.accent,
+			kind = if r.kind == "centre" then "Sky Arena" elseif r.kind == "school" then "School district" else "City district",
+		})
+	end
+	return out
+end
+
+TravelRemote.OnServerEvent:Connect(function(player: Player, action: any, tag: any)
+	if action ~= "go" or type(tag) ~= "string" or Duels.isDueling(player) then
+		return
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local target = anchors:FindFirstChild("Transit_" .. tag)
+	if not (root and target) then
+		return
+	end
+	-- only from a gate: the player must be standing near one
+	local nearGate = false
+	for _, a in anchors:GetChildren() do
+		if string.sub(a.Name, 1, 8) == "Transit_" and (a.CFrame.Position - root.Position).Magnitude < 30 then
+			nearGate = true
+		end
+	end
+	if not nearGate then
+		return
+	end
+	pcall(function()
+		player:RequestStreamAroundAsync(target.CFrame.Position, 5)
+	end)
+	character:PivotTo(target.CFrame)
+	LiftRemote:FireClient(player, "travel")
+end)
+
+-- ---------------------------------------------------------------------------------------------
 -- Talking to NPCs
 -- ---------------------------------------------------------------------------------------------
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, player: Player)
@@ -274,6 +319,10 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 			character:PivotTo(target.CFrame)
 			LiftRemote:FireClient(player, id)
 		end
+		return
+	end
+	if kind == "travel" then
+		TravelRemote:FireClient(player, { from = id, destinations = travelList(id) })
 		return
 	end
 	if kind == "equip" then

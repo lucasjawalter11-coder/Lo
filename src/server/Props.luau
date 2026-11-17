@@ -313,7 +313,7 @@ function Props.shopRow(b, x: number, z: number, yawDeg: number, rnd)
 		Kit.label(sign, Enum.NormalId.Front, names[1 + math.floor(rnd(0, #names - 0.001))], { color = c })
 	end
 	f:box(0, 0, -16, 80, 0.35, 10, Pal.stoneWarm, M.Pavement, { decor = true })
-	Props.lamp(f:shift(-40, 0, -14, -90), 0, 0, hex(0xffe6a8), true, 12)
+	Props.lamp(f:shift(-40, 0, -14, -90), 0, 0, hex(0xffe6a8), false, 12)
 end
 
 --- Crop field with a small barn.
@@ -346,9 +346,8 @@ function Props.park(b, x: number, z: number, rnd)
 	end
 	local beds = { Pal.blossomDeep, hex(0xffd24a), hex(0x8f6bff), hex(0xff6a6a) }
 	for i, q in { { -20, -20 }, { 20, -20 }, { -20, 20 }, { 20, 20 } } do
-		f:box(q[1], 0, q[2], 14, 1, 14, Pal.woodDark, M.Wood)
-		f:box(q[1], 1, q[2], 13, 0.7, 13, beds[i], M.Grass, { decor = true })
-		Props.tree(f, q[1] * 1.6, q[2] * 1.6, if i % 2 == 0 then "blossom" else "round", rnd(0.9, 1.2))
+		f:box(q[1], 0, q[2], 13, 1.2, 13, beds[i], M.Grass, { decor = true })
+		Props.tree(f, q[1] * 1.7, q[2] * 1.7, if i % 2 == 0 then "blossom" else "round", rnd(0.9, 1.3))
 	end
 	Props.bench(f, -10, -6, 90)
 	Props.bench(f, 10, 6, -90)
@@ -391,7 +390,7 @@ function Props.highrise(b, x: number, z: number, yawDeg: number, rnd, maxHeight:
 		local r = math.min(w, d) * 0.55
 		f:cyl(0, 0, 0, r + 3, 6, white, M.SmoothPlastic, { name = "Building" })
 		f:cyl(0, 6, 0, r, h, glass, M.Glass, { trans = 0.15, refl = 0.3, name = "Building" })
-		for y = 14, h, 14 do
+		for y = 26, h, 26 do
 			f:cyl(0, 6 + y - 1, 0, r + 0.6, 1.2, white, M.SmoothPlastic, { decor = true })
 		end
 		f:cyl(0, h + 6, 0, r + 1.5, 3, white, M.SmoothPlastic, { decor = true })
@@ -402,7 +401,7 @@ function Props.highrise(b, x: number, z: number, yawDeg: number, rnd, maxHeight:
 	f:box(0, 6, 0, w, h, d, white, M.SmoothPlastic, { name = "Building" })
 	f:box(0, 8, -d / 2 - 0.3, w * 0.72, h - 6, 0.6, glass, M.Glass, { decor = true, trans = 0.1, refl = 0.35 })
 	f:box(0, 8, d / 2 + 0.3, w * 0.72, h - 6, 0.6, glass, M.Glass, { decor = true, trans = 0.1, refl = 0.35 })
-	for y = 18, h - 4, 18 do
+	for y = 30, h - 4, 30 do
 		f:box(0, 6 + y, 0, w + 0.8, 0.8, d + 0.8, band, M.Neon, { decor = true, trans = 0.2 })
 	end
 	if rnd() > 0.5 then
@@ -440,9 +439,12 @@ function Props.plaza(b, x: number, z: number, rnd)
 		local a = math.rad(45 + i * 90)
 		local px, pz = math.sin(a) * 30, math.cos(a) * 30
 		f:cyl(px, 0.2, pz, 6, 1.6, Pal.white, M.Marble)
-		f:cyl(px, 1.8, pz, 5.4, 0.2, Pal.grass, M.Grass, { decor = true })
-		Props.tree(f:shift(0, 1.8, 0), px, pz, if i % 2 == 0 then "blossom" else "round", 0.85)
-		Props.bench(f, math.sin(a + 0.6) * 18, math.cos(a + 0.6) * 18, math.deg(a + 0.6) + 180)
+		if i % 2 == 0 then
+			Props.tree(f:shift(0, 1.8, 0), px, pz, "blossom", 0.85)
+			Props.bench(f, math.sin(a + 0.6) * 18, math.cos(a + 0.6) * 18, math.deg(a + 0.6) + 180)
+		else
+			Props.bush(f:shift(0, 1.8, 0), px, pz, Pal.leafLight, 3)
+		end
 	end
 end
 

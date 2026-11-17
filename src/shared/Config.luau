@@ -162,11 +162,20 @@ Config.Sounds = {
 	Music = { id = "", volume = 0.35 }, -- put a music asset id here to add a soundtrack
 }
 
+-- The four city districts between the schools. npcs: { id, x, z, yaw } spots around each downtown.
+Config.Cities = {
+	{ id = "city_south", name = "Lakeside Ward", angle = 0, accent = hex(0x39c9ff), npcs = { { "city_kid", -34, 26, -120 } } },
+	{ id = "city_east", name = "Sunrise Market", angle = 90, accent = hex(0xffb62e), npcs = { { "city_vendor", 30, 30, 135 } } },
+	{ id = "city_north", name = "Lantern Row", angle = 180, accent = hex(0xff4fd8), npcs = { { "city_guide", -10, -70, 180 } } },
+	{ id = "city_west", name = "Gearworks", angle = 270, accent = hex(0x7dff7a), tilly = true, npcs = { { "bridge_guard", 40, 290, 0 } } },
+}
+
 -- Map layout shared by the world builder and the client's menu camera
 Config.Map = {
-	CampusGate = 600, -- distance from the centre to each school's gate
+	SchoolRing = 2600, -- distance from the map centre to each school district's plaza (and each city's centre)
+	CampusGate = 450, -- distance from a school district's plaza to its campus gate (on the side away from the centre)
 	TowerDepth = 300, -- how far inside the gate each school tower stands
-	Spire = Vector3.new(0, 300, 0), -- what the hub camera circles: the central tower and the Sky Arena
+	Spire = Vector3.new(0, 420, 0), -- what the hub camera circles: the central tower and the Sky Arena
 }
 
 -- Tags and names used to find things in the world
