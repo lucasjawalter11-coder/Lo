@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Dev helper: draws a menu dumped by tools/lune/gui-dump.luau, with the 3D preview image composited in. -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;900&display=swap">
+</head><body><canvas id="c"></canvas><script type="module">
+const q = new URLSearchParams(location.search);
+const data = await (await fetch(q.get('gui'))).json();
+const c = document.getElementById('c'); c.width = data.w; c.height = data.h;
+const g = c.getContext('2d');
+g.fillStyle = '#7fa6d8'; g.fillRect(0, 0, data.w, data.h); // the world behind the menu
+let vpImg = null;
+if (q.get('img')) { vpImg = new Image(); vpImg.src = q.get('img'); await vpImg.decode().catch(() => null); }
+const rgb = (a, t = 0) => `rgba(${a[0]},${a[1]},${a[2]},${1 - t})`;
+const weight = (f) => /Black/.test(f) ? 900 : /Bold/.test(f) ? 700 : /Medium/.test(f) ? 500 : 400;
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
+for (const o of data.ops) {
+  if (o.k === 'rect') {
+    rr(o.x, o.y, o.w, o.h, o.r);
+    if (o.t < 1) {
+      if (o.g) { const gr = g.createLinearGradient(o.x, o.y, o.x, o.y + o.h); gr.addColorStop(0, rgb(o.g[0], o.t)); gr.addColorStop(1, rgb(o.g[1], o.t)); g.fillStyle = gr; }
+      else g.fillStyle = rgb(o.c, o.t);
+      g.fill();
+    }
+    if (o.s && o.s.t < 1) { g.lineWidth = o.s.w; g.strokeStyle = rgb(o.s.c, o.s.t); rr(o.x + o.s.w / 2, o.y + o.s.w / 2, o.w - o.s.w, o.h - o.s.w, Math.max(0, o.r - o.s.w / 2)); g.stroke(); }
+  } else if (o.k === 'clip') { g.save(); g.beginPath(); g.rect(o.x, o.y, o.w, o.h); g.clip();
+  } else if (o.k === 'unclip') { g.restore();
+  } else if (o.k === 'viewport' && vpImg) {
+    const s = Math.max(o.w / vpImg.width, o.h / vpImg.height);
+    const w = vpImg.width * s, h = vpImg.height * s;
+    g.save(); rr(o.x, o.y, o.w, o.h, 18); g.clip(); g.drawImage(vpImg, o.x + (o.w - w) / 2, o.y + (o.h - h) / 2, w, h); g.restore();
+  } else if (o.k === 'text') {
+    let size = o.scaled ? o.h : o.size;
+    g.font = `${weight(o.font)} ${size}px Montserrat, sans-serif`;
+    if (o.scaled) { const tw = g.measureText(o.text).width; if (tw > o.w) { size *= o.w / tw; g.font = `${weight(o.font)} ${size}px Montserrat, sans-serif`; } }
+    g.fillStyle = rgb(o.c, o.t || 0); g.textBaseline = 'middle';
+    g.textAlign = o.align === 'Center' ? 'center' : o.align === 'Right' ? 'right' : 'left';
+    const x = o.align === 'Center' ? o.x + o.w / 2 : o.align === 'Right' ? o.x + o.w : o.x;
+    g.fillText(o.text, x, o.y + o.h / 2);
+  }
+}
+window.ready = true;
+</script></body></html>

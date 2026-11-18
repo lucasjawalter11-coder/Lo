@@ -41,6 +41,26 @@ local function patchInstances()
 	roblox.implementMethod("Model", "GetPivot", function(self)
 		return pivotOf(self)
 	end)
+	roblox.implementMethod("Model", "GetBoundingBox", function(self)
+		local lo, hi = nil, nil
+		for _, d in self:GetDescendants() do
+			if d:IsA("BasePart") then
+				local half = d.Size / 2
+				for _, sx in { -1, 1 } do
+					for _, sy in { -1, 1 } do
+						for _, sz in { -1, 1 } do
+							local p = d.CFrame * roblox.Vector3.new(half.X * sx, half.Y * sy, half.Z * sz)
+							lo = if lo then roblox.Vector3.new(math.min(lo.X, p.X), math.min(lo.Y, p.Y), math.min(lo.Z, p.Z)) else p
+							hi = if hi then roblox.Vector3.new(math.max(hi.X, p.X), math.max(hi.Y, p.Y), math.max(hi.Z, p.Z)) else p
+						end
+					end
+				end
+			end
+		end
+		lo = lo or roblox.Vector3.new(0, 0, 0)
+		hi = hi or lo
+		return roblox.CFrame.new((lo + hi) / 2), hi - lo
+	end)
 	roblox.implementMethod("Model", "PivotTo", function(self, target)
 		local delta = target * pivotOf(self):Inverse()
 		for _, d in self:GetDescendants() do

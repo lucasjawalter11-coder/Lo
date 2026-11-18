@@ -17,11 +17,13 @@ The world is already inside the place file, so nothing has to be imported by han
   **Start Game** or **Customize**. First-time players pick a school on a screen that flies the camera to
   each school's tower; then they spawn at their school district's arrival station. In game, the **≡ MENU** button at the top
   (or **M** / D-pad up) brings the hub back, where you can resume, customize, or change school.
-- **Customize**: uniform style (long coat, pleated uniform, hoodie, light armour), hair style (8),
-  hair colour (12), eye colour (8) and skin tone (8), with a spinning live preview. Your school sets the
-  uniform colours. Or switch on "Wear my Roblox avatar" to keep your own avatar with a school sash.
-  Looks and school are saved (turn on *Game Settings → Security → Enable Studio Access to API Services*
-  to save while testing in Studio).
+- **Customize**: a character creator with a large live preview (drag, swipe or use the right stick to turn
+  it; it zooms to the face for hair and eyes) and four tabs: **Uniform** (long coat, pleated uniform, hoodie,
+  light armour, or "Wear my Roblox avatar" with a school sash), **Hair** (8 styles, 12 colours), **Eyes**
+  (8 colours) and **Skin** (8 tones). Click a tile to pick it; **Random**, **Reset**, **Back** and **Save**
+  sit along the bottom. Controllers move between tiles with the D-pad and switch tabs with LB / RB; phones
+  get a compact layout. Your school sets the uniform colours. Looks and school are saved (turn on
+  *Game Settings → Security → Enable Studio Access to API Services* to save while testing in Studio).
 
 - **Nine islands on a lake, joined by bridges** (about 7,700 studs across):
   - **Crown Plaza** in the middle: the **Halcyon Spire**, an 820-stud glass tower carrying the
@@ -108,6 +110,7 @@ node tools/lune/lint.mjs               # Luau lint
 node tools/preview/shot.mjs --scene build/scene.json --out build/shots   # preview renders
 lune run tools/lune/sim-duel.luau saber maul 3 3    # AI-vs-AI duel through the real combat code
 lune run tools/lune/pose-sheet.luau scythe l1,s2    # render a move as a contact sheet
+lune run tools/lune/gui-dump.luau 1280 720 2 build/gui.json && node tools/preview/gui-shot.mjs build/gui.json build/gui.png   # render the Customize screen
 ```
 
 `web/` holds the earlier browser prototype.

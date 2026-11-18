@@ -14,7 +14,6 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("HalcyonShared")
 local Config = require(Shared:WaitForChild("Config"))
 local Looks = require(Shared:WaitForChild("Looks"))
-local Appearance = require(Shared:WaitForChild("Appearance"))
 
 local Hub = {}
 
@@ -40,7 +39,6 @@ local state = {
 local gui: ScreenGui
 local screens = {}
 local menuButton: TextButton
-local preview = { viewport = nil, model = nil, camera = nil, spin = 0 }
 local cameraConn: RBXScriptConnection? = nil
 local orbit = 0
 
@@ -359,181 +357,28 @@ local function buildSchools()
 end
 
 -- ---------------------------------------------------------------------------------------------
--- Customize: live preview on the left, option rows on the right
+-- Customize: the character creator lives in its own module
 -- ---------------------------------------------------------------------------------------------
-local function rebuildPreview()
-	local vp = preview.viewport
-	if not vp then
-		return
-	end
-	if preview.model then
-		preview.model:Destroy()
-		preview.model = nil
-	end
-	local model
-	local source = ReplicatedStorage:FindFirstChild(Config.PreviewsName)
-	source = source and source:FindFirstChild(tostring(player.UserId))
-	if source then
-		model = source:Clone()
-		for _, d in model:GetDescendants() do
-			if d:IsA("BasePart") then
-				d.Anchored = true
-			end
-		end
-	else
-		model = Appearance.mannequin()
-	end
-	Appearance.apply(model, state.look, state.profile and state.profile.school)
-	model.Parent = vp:FindFirstChildOfClass("WorldModel") or vp
-	local cf, size = model:GetBoundingBox()
-	preview.model = model
-	preview.centre = cf.Position
-	preview.height = size.Y
-	preview.base = model:GetPivot()
-end
+local CustomizeUi = require(script.Parent:WaitForChild("CustomizeUi"))
 
 local function buildCustomize()
-	local f = make("Frame", { Name = "Customize", BackgroundColor3 = INK, BackgroundTransparency = 0.3, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), Visible = false }, gui)
-	label(f, "CUSTOMIZE", { Position = UDim2.fromScale(0.04, 0.04), Size = UDim2.fromScale(0.4, 0.07), Font = Enum.Font.GothamBlack, TextColor3 = GOLD })
-
-	local vp = make("ViewportFrame", {
-		BackgroundColor3 = PANEL,
-		BackgroundTransparency = 0.1,
-		Position = UDim2.fromScale(0.04, 0.14),
-		Size = UDim2.fromScale(0.36, 0.78),
-		Ambient = Color3.fromRGB(170, 170, 190),
-		LightColor = Color3.fromRGB(255, 244, 230),
-		LightDirection = Vector3.new(-0.4, -1, -0.6),
-	}, f)
-	corner(vp, 14)
-	stroke(vp, GOLD, 2)
-	make("WorldModel", {}, vp)
-	local cam = make("Camera", { FieldOfView = 32 }, vp)
-	vp.CurrentCamera = cam
-	preview.viewport = vp
-	preview.camera = cam
-
-	local list = make("Frame", { BackgroundTransparency = 1, Position = UDim2.fromScale(0.44, 0.14), Size = UDim2.fromScale(0.52, 0.66) }, f)
-	make("UIListLayout", { Padding = UDim.new(0.02, 0), SortOrder = Enum.SortOrder.LayoutOrder }, list)
-	local rows = {}
-	local valueLabels = {}
-	local swatches = {}
-
-	local function refreshRows()
-		for _, field in Looks.Fields do
-			local v = state.look[field.key]
-			local text
-			if field.list then
-				text = field.list[v].name
-				local sw = swatches[field.key]
-				if sw then
-					sw.Visible = field.list[v].color ~= nil
-					if field.list[v].color then
-						sw.BackgroundColor3 = field.list[v].color
-					end
-				end
-			else
-				text = if v then "ON" else "OFF"
-			end
-			valueLabels[field.key].Text = text
-			-- hair, eyes and skin do nothing while the Roblox avatar is worn
-			local muted = state.look.avatar and field.key ~= "avatar"
-			valueLabels[field.key].TextTransparency = if muted then 0.6 else 0
-		end
-	end
-
-	local function step(field, delta: number)
-		if field.list then
-			local n = #field.list
-			state.look[field.key] = ((state.look[field.key] - 1 + delta) % n) + 1
-		else
-			state.look[field.key] = not state.look[field.key]
-		end
-		refreshRows()
-		rebuildPreview()
-	end
-
-	for i, field in Looks.Fields do
-		local row = make("Frame", { BackgroundColor3 = PANEL, BackgroundTransparency = 0.1, Size = UDim2.fromScale(1, 0.145), LayoutOrder = i }, list)
-		corner(row, 10)
-		label(row, field.label, { Position = UDim2.fromScale(0.04, 0.22), Size = UDim2.fromScale(0.34, 0.56), Font = Enum.Font.GothamBold, TextColor3 = DIM })
-		local left = button(row, "<", LUMEN, function()
-			step(field, -1)
-		end, { Position = UDim2.fromScale(0.4, 0.12), Size = UDim2.fromScale(0.1, 0.76) })
-		local value = label(row, "", { Position = UDim2.fromScale(0.52, 0.2), Size = UDim2.fromScale(0.3, 0.6), TextXAlignment = Enum.TextXAlignment.Center })
-		local right = button(row, ">", LUMEN, function()
-			step(field, 1)
-		end, { Position = UDim2.fromScale(0.86, 0.12), Size = UDim2.fromScale(0.1, 0.76) })
-		if field.list and field.list[1].color then
-			local sw = make("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.fromScale(0.52, 0.5), Size = UDim2.fromScale(0.04, 0.5), BorderSizePixel = 0 }, row)
-			corner(sw, 20)
-			swatches[field.key] = sw
-		end
-		valueLabels[field.key] = value
-		rows[i] = { left = left, right = right }
-		left.NextSelectionRight = right
-		right.NextSelectionLeft = left
-	end
-	for i, r in rows do
-		local up, down = rows[i - 1], rows[i + 1]
-		if up then
-			r.left.NextSelectionUp = up.left
-			r.right.NextSelectionUp = up.right
-		end
-		if down then
-			r.left.NextSelectionDown = down.left
-			r.right.NextSelectionDown = down.right
-		end
-	end
-
-	local save = button(f, "SAVE", GOLD, function()
-		local ok, saved = pcall(function()
-			return MenuRemote:InvokeServer("look", state.look)
-		end)
-		if ok and saved then
-			state.look = saved
-			state.profile.look = saved
-			state.profile.customised = true
-		end
-		show("main")
-	end, { Position = UDim2.fromScale(0.44, 0.84), Size = UDim2.fromScale(0.25, 0.09) })
-	local back = button(f, "BACK", DIM, function()
-		state.look = table.clone(state.profile.look)
-		show("main")
-	end, { Position = UDim2.fromScale(0.71, 0.84), Size = UDim2.fromScale(0.25, 0.09) })
-	save.NextSelectionRight = back
-	back.NextSelectionLeft = save
-	local last = rows[#rows]
-	last.left.NextSelectionDown = save
-	last.right.NextSelectionDown = back
-	save.NextSelectionUp = last.left
-	back.NextSelectionUp = last.right
-
-	-- spin the preview slowly
-	RunService.RenderStepped:Connect(function(dt)
-		if state.screen ~= "customize" or not preview.model then
-			return
-		end
-		preview.spin += dt * 0.6
-		local c = preview.centre
-		preview.model:PivotTo(CFrame.new(c) * CFrame.Angles(0, preview.spin, 0) * CFrame.new(-c) * preview.base)
-		local dist = preview.height * 2.1
-		cam.CFrame = CFrame.lookAt(c + Vector3.new(0, preview.height * 0.08, -dist), c + Vector3.new(0, preview.height * 0.05, 0))
-	end)
-
-	screens.customize = {
-		frame = f,
-		first = rows[1].right,
-		refresh = function()
-			state.look = table.clone(state.profile.look)
-			preview.spin = 0
-			refreshRows()
-			rebuildPreview()
+	screens.customize = CustomizeUi.build(gui, {
+		state = state,
+		remote = MenuRemote,
+		click = playClick,
+		viewSize = function()
+			return Workspace.CurrentCamera.ViewportSize
 		end,
-	}
+		onDone = function()
+			show("main")
+		end,
+	})
 end
 
 show = function(name: string)
+	if state.screen == "customize" and name ~= "customize" and screens.customize then
+		screens.customize.close()
+	end
 	state.screen = name
 	if Hub.onOpenChanged then
 		Hub.onOpenChanged(name ~= "closed")
@@ -611,8 +456,8 @@ function Hub.init(playerGui: PlayerGui)
 	local previews = ReplicatedStorage:WaitForChild(Config.PreviewsName, 10)
 	if previews then
 		previews.ChildAdded:Connect(function(child)
-			if child.Name == tostring(player.UserId) and state.screen == "customize" then
-				rebuildPreview()
+			if child.Name == tostring(player.UserId) and screens.customize then
+				screens.customize.previewArrived()
 			end
 		end)
 	end
